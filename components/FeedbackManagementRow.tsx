@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
+import { ConfirmationModal } from './ConfirmationModal.tsx';
 
 interface FeedbackManagementRowProps {
     feedback: FeedbackData;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
 }
 
 const getStatusColor = (status: ReviewStatus) => {
@@ -19,11 +21,12 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview }) => {
+export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
     const [isSaving, setIsSaving] = useState(false);
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     
     const date = feedback.timestamp ? new Date(feedback.timestamp).toLocaleDateString('es-ES') : 'N/A';
 
@@ -32,6 +35,12 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
         setIsSaving(true);
         await onUpdateReview(feedback.id, reviewStatus, reviewResult);
         setIsSaving(false);
+    };
+
+    const handleDelete = async () => {
+        if (!feedback.id) return;
+        // No es necesario cerrar el modal aquí, ya que el componente se desmontará si el borrado tiene éxito.
+        await onDelete(feedback.id);
     };
 
     return (
@@ -85,7 +94,13 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                         />
                                     </div>
                                 </div>
-                                <div className="text-right mt-3">
+                                <div className="flex justify-end items-center gap-3 mt-3">
+                                    <button
+                                        onClick={() => setIsConfirmingDelete(true)}
+                                        className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md"
+                                    >
+                                        Borrar Registro
+                                    </button>
                                     <button 
                                         onClick={handleSaveReview}
                                         disabled={isSaving}
@@ -99,6 +114,14 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                     </td>
                 </tr>
             )}
+             <ConfirmationModal
+                isOpen={isConfirmingDelete}
+                onClose={() => setIsConfirmingDelete(false)}
+                onConfirm={handleDelete}
+                title="Confirmar Borrado"
+                message="¿Estás seguro de que quieres borrar este registro de feedback? Esta acción no se puede deshacer."
+                confirmText="Sí, Borrar"
+            />
         </>
     );
 };

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
 import { PaginationControls } from './PaginationControls.tsx';
 import { ExportButton } from './ExportButton.tsx';
+import { ConfirmationModal } from './ConfirmationModal.tsx';
 
 interface FeedbackResultsProps {
     feedbackList: FeedbackData[];
     isLoading: boolean;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -24,11 +26,12 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackResultsProps['onUpdateReview'] }> = ({ feedback, onUpdateReview }) => {
+const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackResultsProps['onUpdateReview']; onDelete: FeedbackResultsProps['onDelete'] }> = ({ feedback, onUpdateReview, onDelete }) => {
     const [isReviewing, setIsReviewing] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
     const [isSaving, setIsSaving] = useState(false);
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const filledStars = '★'.repeat(feedback.valoracion_deontologica || 0);
     const emptyStars = '☆'.repeat(5 - (feedback.valoracion_deontologica || 0));
@@ -43,87 +46,108 @@ const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackR
         setIsReviewing(false);
     };
 
+    const handleDelete = async () => {
+        if (!feedback.id) return;
+        await onDelete(feedback.id);
+        setIsConfirmingDelete(false);
+    };
+
     return (
-        <div className="p-3 border border-indigo-100 rounded-lg shadow-sm bg-white flex flex-col justify-between">
-            <div>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold text-gray-800 text-sm">{feedback.escenario_keywords}</p>
-                        <p className="text-xs text-indigo-600">{feedback.tipo_feedback}</p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${getStatusColor(feedback.review_status)}`}>
-                        {feedback.review_status}
-                    </span>
-                </div>
-
-                <div className="flex justify-between items-center mt-3 text-sm">
-                    <span className="text-amber-400 text-lg" title={`${feedback.valoracion_deontologica || 0}/5 estrellas`}>{stars}</span>
-                    <span className="text-gray-500 text-xs">{date}</span>
-                </div>
-
-                {feedback.descripcion && (
-                    <p className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
-                        {feedback.descripcion}
-                    </p>
-                )}
-            </div>
-            
-            <div className="mt-3 pt-3 border-t">
-                {isReviewing ? (
-                    <div className="space-y-3">
+        <>
+            <div className="p-3 border border-indigo-100 rounded-lg shadow-sm bg-white flex flex-col justify-between">
+                <div>
+                    <div className="flex justify-between items-start">
                         <div>
-                            <label htmlFor={`review-status-${feedback.id}`} className="block text-xs font-medium text-gray-700">Cambiar Estado</label>
-                            <select
-                                id={`review-status-${feedback.id}`}
-                                value={reviewStatus}
-                                onChange={(e) => setReviewStatus(e.target.value as ReviewStatus)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1.5 text-xs focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="En Revisión">En Revisión</option>
-                                <option value="Revisado">Revisado</option>
-                            </select>
+                            <p className="font-semibold text-gray-800 text-sm">{feedback.escenario_keywords}</p>
+                            <p className="text-xs text-indigo-600">{feedback.tipo_feedback}</p>
                         </div>
-                        <div>
-                            <label htmlFor={`review-result-${feedback.id}`} className="block text-xs font-medium text-gray-700">Resultado</label>
-                            <textarea
-                                id={`review-result-${feedback.id}`}
-                                rows={2}
-                                value={reviewResult}
-                                onChange={(e) => setReviewResult(e.target.value)}
-                                placeholder="Añadir notas..."
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1.5 text-xs focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                            <button onClick={() => setIsReviewing(false)} className="px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md">
-                                Cancelar
-                            </button>
-                            <button 
-                                onClick={handleSaveReview}
-                                disabled={isSaving}
-                                className="px-2 py-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-blue-400"
-                            >
-                                {isSaving ? '...' : 'Guardar'}
-                            </button>
-                        </div>
+                        <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${getStatusColor(feedback.review_status)}`}>
+                            {feedback.review_status}
+                        </span>
                     </div>
-                ) : (
-                    <div className="flex justify-between items-center">
-                         <p className="text-xs text-gray-500 italic truncate pr-2" title={feedback.review_result || "Sin resultado de revisión"}>
-                            {feedback.review_result || "Sin resultado..."}
-                         </p>
-                        <button onClick={() => setIsReviewing(true)} className="px-3 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md whitespace-nowrap">
-                            Gestionar
-                        </button>
+
+                    <div className="flex justify-between items-center mt-3 text-sm">
+                        <span className="text-amber-400 text-lg" title={`${feedback.valoracion_deontologica || 0}/5 estrellas`}>{stars}</span>
+                        <span className="text-gray-500 text-xs">{date}</span>
                     </div>
-                )}
+
+                    {feedback.descripcion && (
+                        <p className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
+                            {feedback.descripcion}
+                        </p>
+                    )}
+                </div>
+                
+                <div className="mt-3 pt-3 border-t">
+                    {isReviewing ? (
+                        <div className="space-y-3">
+                            <div>
+                                <label htmlFor={`review-status-${feedback.id}`} className="block text-xs font-medium text-gray-700">Cambiar Estado</label>
+                                <select
+                                    id={`review-status-${feedback.id}`}
+                                    value={reviewStatus}
+                                    onChange={(e) => setReviewStatus(e.target.value as ReviewStatus)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1.5 text-xs focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="En Revisión">En Revisión</option>
+                                    <option value="Revisado">Revisado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor={`review-result-${feedback.id}`} className="block text-xs font-medium text-gray-700">Resultado</label>
+                                <textarea
+                                    id={`review-result-${feedback.id}`}
+                                    rows={2}
+                                    value={reviewResult}
+                                    onChange={(e) => setReviewResult(e.target.value)}
+                                    placeholder="Añadir notas..."
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-1.5 text-xs focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                                <button onClick={() => setIsReviewing(false)} className="px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md">
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={handleSaveReview}
+                                    disabled={isSaving}
+                                    className="px-2 py-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-blue-400"
+                                >
+                                    {isSaving ? '...' : 'Guardar'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-between items-center">
+                             <p className="text-xs text-gray-500 italic truncate pr-2" title={feedback.review_result || "Sin resultado de revisión"}>
+                                {feedback.review_result || "Sin resultado..."}
+                             </p>
+                             <div className="flex items-center gap-2">
+                                <button onClick={() => setIsConfirmingDelete(true)} className="px-3 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md">
+                                    Borrar
+                                </button>
+                                <button onClick={() => setIsReviewing(true)} className="px-3 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md whitespace-nowrap">
+                                    Gestionar
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+            <ConfirmationModal
+                isOpen={isConfirmingDelete}
+                onClose={() => setIsConfirmingDelete(false)}
+                onConfirm={handleDelete}
+                title="Confirmar Borrado"
+                message="¿Estás seguro de que quieres borrar este registro de feedback? Esta acción no se puede deshacer."
+                confirmText="Sí, Borrar"
+            />
+        </>
     );
 };
 
-export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, isLoading, onUpdateReview }) => {
+export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete }) => {
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
@@ -152,7 +176,7 @@ export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, 
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {paginatedFeedback.map((feedback) => (
-                            <FeedbackCard key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} />
+                            <FeedbackCard key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} onDelete={onDelete} />
                         ))}
                     </div>
                     {totalPages > 1 && (

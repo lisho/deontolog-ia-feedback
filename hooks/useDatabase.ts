@@ -44,5 +44,15 @@ export const useDatabase = () => {
         });
     }, []);
 
-    return { feedbackList, isLoading, addFeedback, updateFeedbackReview };
+    const deleteFeedback = useCallback(async (id: string) => {
+        return new Promise<void>((resolve) => {
+            setTimeout(() => {
+                setFeedbackList(prev => prev.filter(fb => fb.id !== id));
+                resolve();
+            }, 500);
+        });
+    }, []);
+
+
+    return { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback };
 };

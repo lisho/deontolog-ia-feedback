@@ -39,7 +39,7 @@ const SubmitOnlyView = () => {
 
 // Componente para la vista completa con todas las funcionalidades
 const FullAppView = () => {
-    const { feedbackList, isLoading, addFeedback, updateFeedbackReview } = useDatabase();
+    const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback } = useDatabase();
     const [view, setView] = useState<'form' | 'results' | 'management' | 'dashboard'>('form');
 
     // --- Lógica de Filtrado ---
@@ -101,9 +101,9 @@ const FullAppView = () => {
             case 'form':
                 return <FeedbackForm onSubmit={handleFormSubmit} />;
             case 'results':
-                return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} />;
+                return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} />;
             case 'management':
-                 return <FeedbackManagement feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} />;
+                 return <FeedbackManagement feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} />;
             case 'dashboard':
                 return <DashboardView feedbackList={filteredFeedback} />;
             default:

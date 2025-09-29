@@ -8,11 +8,12 @@ interface FeedbackManagementProps {
     feedbackList: FeedbackData[];
     isLoading: boolean;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview }) => {
+export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete }) => {
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
@@ -52,7 +53,7 @@ export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedback
                             </thead>
                             <tbody className="text-gray-700">
                                 {paginatedFeedback.map((feedback) => (
-                                    <FeedbackManagementRow key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} />
+                                    <FeedbackManagementRow key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} onDelete={onDelete} />
                                 ))}
                             </tbody>
                         </table>
