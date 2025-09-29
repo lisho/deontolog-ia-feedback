@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { FeedbackForm } from './components/FeedbackForm.tsx';
 import { FeedbackResults } from './components/FeedbackResults.tsx';
 import { FeedbackManagement } from './components/FeedbackManagement.tsx';
+import { DashboardView } from './components/DashboardView.tsx';
 import { useDatabase } from './hooks/useDatabase.ts';
 import type { FeedbackData, FilterState } from './types.ts';
 import { FilterControls } from './components/FilterControls.tsx';
@@ -19,7 +20,7 @@ const SubmitOnlyView = () => {
         <div className="bg-gray-100 min-h-screen font-sans">
             <header className="bg-white shadow-md">
                 <nav className="container mx-auto px-6 py-3">
-                    <h1 className="text-2xl font-bold text-blue-600">Formulario de Feedback Deontológico</h1>
+                    <h1 className="text-2xl font-bold text-blue-600">Deontolog-IA Formulario de Feedback</h1>
                 </nav>
             </header>
             <main className="container mx-auto p-4 md:p-8">
@@ -30,7 +31,7 @@ const SubmitOnlyView = () => {
                 </div>
             </main>
             <footer className="text-center py-4 text-gray-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} Comité de Ética y Deontología. Todos los derechos reservados.</p>
+                <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
             </footer>
         </div>
     );
@@ -39,7 +40,7 @@ const SubmitOnlyView = () => {
 // Componente para la vista completa con todas las funcionalidades
 const FullAppView = () => {
     const { feedbackList, isLoading, addFeedback, updateFeedbackReview } = useDatabase();
-    const [view, setView] = useState<'form' | 'results' | 'management'>('form');
+    const [view, setView] = useState<'form' | 'results' | 'management' | 'dashboard'>('form');
 
     // --- Lógica de Filtrado ---
     const initialFilterState: FilterState = {
@@ -103,6 +104,8 @@ const FullAppView = () => {
                 return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} />;
             case 'management':
                  return <FeedbackManagement feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} />;
+            case 'dashboard':
+                return <DashboardView feedbackList={filteredFeedback} />;
             default:
                 return <FeedbackForm onSubmit={handleFormSubmit} />;
         }
@@ -112,7 +115,7 @@ const FullAppView = () => {
         <div className="bg-gray-100 min-h-screen font-sans">
             <header className="bg-white shadow-md">
                 <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-blue-600">Plataforma de Feedback Deontológico</h1>
+                    <h1 className="text-2xl font-bold text-blue-600"> Deontolog-IA - Plataforma de Feedback</h1>
                     <div>
                         <button onClick={() => setView('form')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'form' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                             Enviar Feedback
@@ -123,12 +126,15 @@ const FullAppView = () => {
                         <button onClick={() => setView('management')} className={`ml-4 px-4 py-2 rounded-md text-sm font-medium ${view === 'management' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                             Gestionar
                         </button>
+                        <button onClick={() => setView('dashboard')} className={`ml-4 px-4 py-2 rounded-md text-sm font-medium ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                            Estadísticas
+                        </button>
                     </div>
                 </nav>
             </header>
             <main className="container mx-auto p-4 md:p-8">
                 <div className={`mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg transition-all duration-300 ${view !== 'form' ? 'max-w-7xl' : 'max-w-4xl'}`}>
-                    {(view === 'results' || view === 'management') && (
+                    {(view === 'results' || view === 'management' || view === 'dashboard') && (
                         <FilterControls
                             filters={filters}
                             onFilterChange={handleFilterChange}
@@ -140,7 +146,7 @@ const FullAppView = () => {
                 </div>
             </main>
             <footer className="text-center py-4 text-gray-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} Comité de Ética y Deontología. Todos los derechos reservados.</p>
+                <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
             </footer>
         </div>
     );
