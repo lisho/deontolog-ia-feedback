@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
 import { PaginationControls } from './PaginationControls.tsx';
+import { ExportButton } from './ExportButton.tsx';
 
 interface FeedbackResultsProps {
     feedbackList: FeedbackData[];
@@ -137,7 +138,12 @@ export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, 
 
     return (
         <div className="mt-6 mb-6">
-            <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Últimos Feedbacks Recibidos</h3>
+            <div className="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 className="text-xl font-bold text-gray-800">Últimos Feedbacks Recibidos</h3>
+                {feedbackList.length > 0 && (
+                   <ExportButton data={feedbackList} />
+                )}
+            </div>
             {isLoading ? (
                 <div className="text-center text-gray-500 p-4">Cargando datos...</div>
             ) : feedbackList.length === 0 ? (

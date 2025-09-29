@@ -34,18 +34,59 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     const [formData, setFormData] = useState<FeedbackData>(getInitialState());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [errors, setErrors] = useState<Partial<Record<keyof FeedbackData, string>>>({});
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-    }, []);
+        if (errors[name as keyof FeedbackData]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name as keyof FeedbackData];
+                return newErrors;
+            });
+        }
+    }, [errors]);
 
     const handleRatingChange = useCallback((value: number) => {
         setFormData(prev => ({ ...prev, valoracion_deontologica: value }));
     }, []);
 
+    const validateForm = () => {
+        const newErrors: Partial<Record<keyof FeedbackData, string>> = {};
+
+        if (!formData.dispositivo) {
+            newErrors.dispositivo = 'Debe seleccionar un dispositivo.';
+        }
+        if (!formData.escenario_keywords.trim()) {
+            newErrors.escenario_keywords = 'Debe rellenar las palabras clave del escenario.';
+        }
+        if (!formData.tipo_feedback) {
+            newErrors.tipo_feedback = 'Debe seleccionar un tipo de feedback.';
+        }
+        if (!formData.descripcion.trim()) {
+            newErrors.descripcion = 'La descripción detallada es obligatoria.';
+        }
+
+        if (formData.tipo_feedback === 'Valorar Conversación') {
+            if (!formData.claridad) {
+                newErrors.claridad = 'Debe seleccionar si la respuesta fue clara.';
+            }
+            if (!formData.utilidad) {
+                newErrors.utilidad = 'Debe seleccionar la utilidad de la respuesta.';
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!validateForm()) {
+            return;
+        }
         setIsSubmitting(true);
         setShowSuccessMessage(false);
         try {
@@ -53,6 +94,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
             
             // Se restablecen los campos del formulario a su estado inicial.
             setFormData(getInitialState());
+            setErrors({});
             
             setShowSuccessMessage(true);
             setTimeout(() => setShowSuccessMessage(false), 5000); // Hide after 5 seconds
@@ -66,7 +108,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     const isConversationValuation = formData.tipo_feedback === 'Valorar Conversación';
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             {showSuccessMessage && (
                 <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md shadow-sm" role="alert">
                     <p className="font-bold">¡Feedback Enviado!</p>
@@ -95,15 +137,17 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                 <input type="datetime-local" id="fecha_hora" name="fecha_hora" value={formData.fecha_hora} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black date-input-fix" required/>
 
                 <label htmlFor="dispositivo" className="block text-sm font-medium text-black mt-4">Tipo de Dispositivo Utilizado:</label>
-                <select id="dispositivo" name="dispositivo" value={formData.dispositivo} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black" required>
+                <select id="dispositivo" name="dispositivo" value={formData.dispositivo} onChange={handleChange} className={`mt-1 block w-full rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black ${errors.dispositivo ? 'border-red-500' : 'border-gray-300'}`} required>
                     <option value="" disabled>Seleccione...</option>
                     <option value="Movil">Móvil</option>
                     <option value="Tableta">Tableta</option>
                     <option value="Ordenador">Ordenador</option>
                 </select>
+                {errors.dispositivo && <p className="text-red-500 text-xs mt-1">{errors.dispositivo}</p>}
 
                 <label htmlFor="escenario_keywords" className="block text-sm font-medium text-black mt-4">Escenario/Dilema planteado (Palabras clave):</label>
-                <input type="text" id="escenario_keywords" name="escenario_keywords" value={formData.escenario_keywords} onChange={handleChange} placeholder="Ej: Confidencialidad en menores" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black" required/>
+                <input type="text" id="escenario_keywords" name="escenario_keywords" value={formData.escenario_keywords} onChange={handleChange} placeholder="Ej: Confidencialidad en menores" className={`mt-1 block w-full rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.escenario_keywords ? 'border-red-500' : 'border-gray-300'}`} required/>
+                {errors.escenario_keywords && <p className="text-red-500 text-xs mt-1">{errors.escenario_keywords}</p>}
             </fieldset>
 
             <fieldset className="p-4 border border-gray-200 rounded-lg">
@@ -122,12 +166,14 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                         </div>
                     ))}
                 </div>
+                {errors.tipo_feedback && <p className="text-red-500 text-xs mt-2">{errors.tipo_feedback}</p>}
             </fieldset>
 
             <fieldset className="p-4 border border-gray-200 rounded-lg">
                 <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
                 <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
-                <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black" required></textarea>
+                <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
+                {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
                 <label htmlFor="respuesta_chatbot" className="block text-sm font-medium text-black mt-4">Copia aquí la respuesta del chatbot (opcional):</label>
                 <textarea id="respuesta_chatbot" name="respuesta_chatbot" value={formData.respuesta_chatbot} onChange={handleChange} rows={3} placeholder="Pegue la respuesta de la IA para facilitar la revisión deontológica." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
             </fieldset>
@@ -137,15 +183,21 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                     <legend className="text-lg font-semibold text-yellow-700 px-2">D. Evaluación Específica</legend>
                     <div className="mt-2">
                         <label className="block text-sm font-medium text-black">1. Claridad de la Respuesta: ¿Fue fácil de entender?</label>
-                        <input type="radio" id="clara_si" name="claridad" value="Sí" checked={formData.claridad === 'Sí'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="clara_si" className="ml-1 mr-4 text-black">Sí</label>
-                        <input type="radio" id="clara_no" name="claridad" value="No" checked={formData.claridad === 'No'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="clara_no" className="ml-1 text-black">No</label>
+                        <div className="mt-1">
+                            <input type="radio" id="clara_si" name="claridad" value="Sí" checked={formData.claridad === 'Sí'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="clara_si" className="ml-1 mr-4 text-black">Sí</label>
+                            <input type="radio" id="clara_no" name="claridad" value="No" checked={formData.claridad === 'No'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="clara_no" className="ml-1 text-black">No</label>
+                        </div>
+                        {errors.claridad && <p className="text-red-500 text-xs mt-1">{errors.claridad}</p>}
                     </div>
 
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-black">2. Utilidad para la Práctica: ¿Te ayudaría a resolver el dilema?</label>
-                        <input type="radio" id="util_si" name="utilidad" value="Sí" checked={formData.utilidad === 'Sí'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_si" className="ml-1 mr-4 text-black">Sí</label>
-                        <input type="radio" id="util_no" name="utilidad" value="No" checked={formData.utilidad === 'No'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_no" className="ml-1 mr-4 text-black">No</label>
-                        <input type="radio" id="util_seguro" name="utilidad" value="No Estoy Seguro" checked={formData.utilidad === 'No Estoy Seguro'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_seguro" className="ml-1 text-black">No estoy seguro</label>
+                        <div className="mt-1">
+                            <input type="radio" id="util_si" name="utilidad" value="Sí" checked={formData.utilidad === 'Sí'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_si" className="ml-1 mr-4 text-black">Sí</label>
+                            <input type="radio" id="util_no" name="utilidad" value="No" checked={formData.utilidad === 'No'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_no" className="ml-1 mr-4 text-black">No</label>
+                            <input type="radio" id="util_seguro" name="utilidad" value="No Estoy Seguro" checked={formData.utilidad === 'No Estoy Seguro'} onChange={handleChange} required={isConversationValuation}/><label htmlFor="util_seguro" className="ml-1 text-black">No estoy seguro</label>
+                        </div>
+                         {errors.utilidad && <p className="text-red-500 text-xs mt-1">{errors.utilidad}</p>}
                     </div>
                     
                     <div className="mt-4">
