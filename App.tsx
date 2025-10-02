@@ -6,6 +6,7 @@ import { DashboardView } from './components/DashboardView.tsx';
 import { useDatabase } from './hooks/useDatabase.ts';
 import type { FeedbackData, FilterState } from './types.ts';
 import { FilterControls } from './components/FilterControls.tsx';
+import { GlobalSearchBar } from './components/GlobalSearchBar.tsx';
 
 // Componente para la vista de solo envío de feedback
 const SubmitOnlyView = () => {
@@ -42,7 +43,7 @@ const FullAppView = () => {
     const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback } = useDatabase();
     const [view, setView] = useState<'form' | 'results' | 'management' | 'dashboard'>('form');
 
-    // --- Lógica de Filtrado ---
+    // --- Lógica de Filtrado y Búsqueda ---
     const initialFilterState: FilterState = {
         status: '',
         type: '',
@@ -52,9 +53,14 @@ const FullAppView = () => {
     };
 
     const [filters, setFilters] = useState<FilterState>(initialFilterState);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleFilterChange = useCallback((name: keyof FilterState, value: string | number) => {
         setFilters(prev => ({ ...prev, [name]: value }));
+    }, []);
+
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
     }, []);
 
     const handleResetFilters = useCallback(() => {
@@ -67,7 +73,10 @@ const FullAppView = () => {
     }, [feedbackList]);
 
     const filteredFeedback = useMemo(() => {
+        const lowercasedSearchTerm = searchTerm.toLowerCase();
+
         return feedbackList.filter(item => {
+            // Standard filters
             if (filters.status && item.review_status !== filters.status) return false;
             if (filters.type && item.tipo_feedback !== filters.type) return false;
             if (filters.rating && (item.valoracion_deontologica || 0) < Number(filters.rating)) return false;
@@ -85,11 +94,21 @@ const FullAppView = () => {
                     if (itemDate > endDate) return false;
                 }
             }
+
+            // Global search filter
+            if (lowercasedSearchTerm) {
+                const inScenario = (item.escenario_keywords || '').toLowerCase().includes(lowercasedSearchTerm);
+                const inDescription = (item.descripcion || '').toLowerCase().includes(lowercasedSearchTerm);
+                const inResult = (item.review_result || '').toLowerCase().includes(lowercasedSearchTerm);
+                if (!inScenario && !inDescription && !inResult) {
+                    return false;
+                }
+            }
             
             return true;
         });
-    }, [feedbackList, filters]);
-    // --- Fin Lógica de Filtrado ---
+    }, [feedbackList, filters, searchTerm]);
+    // --- Fin Lógica de Filtrado y Búsqueda ---
 
     const handleFormSubmit = async (data: FeedbackData) => {
         await addFeedback(data);
@@ -134,6 +153,12 @@ const FullAppView = () => {
             </header>
             <main className="container mx-auto p-4 md:p-8">
                 <div className={`mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg transition-all duration-300 ${view !== 'form' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+                    {(view === 'results' || view === 'management') && (
+                        <GlobalSearchBar 
+                            searchTerm={searchTerm} 
+                            onSearchChange={handleSearchChange} 
+                        />
+                    )}
                     {(view === 'results' || view === 'management' || view === 'dashboard') && (
                         <FilterControls
                             filters={filters}
