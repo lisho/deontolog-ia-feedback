@@ -9,6 +9,7 @@ interface FeedbackResultsProps {
     isLoading: boolean;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -26,12 +27,23 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackResultsProps['onUpdateReview']; onDelete: FeedbackResultsProps['onDelete'] }> = ({ feedback, onUpdateReview, onDelete }) => {
+const FeedbackCard: React.FC<{ 
+    feedback: FeedbackData; 
+    onUpdateReview: FeedbackResultsProps['onUpdateReview']; 
+    onDelete: FeedbackResultsProps['onDelete'];
+    showToast: FeedbackResultsProps['showToast'];
+}> = ({ feedback, onUpdateReview, onDelete, showToast }) => {
     const [isReviewing, setIsReviewing] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
     const [isSaving, setIsSaving] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+    // Sincroniza el estado interno cuando las props cambian desde el padre
+    useEffect(() => {
+        setReviewStatus(feedback.review_status);
+        setReviewResult(feedback.review_result);
+    }, [feedback.review_status, feedback.review_result]);
 
     const filledStars = '★'.repeat(feedback.valoracion_deontologica || 0);
     const emptyStars = '☆'.repeat(5 - (feedback.valoracion_deontologica || 0));
@@ -41,14 +53,27 @@ const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackR
     const handleSaveReview = async () => {
         if (!feedback.id) return;
         setIsSaving(true);
-        await onUpdateReview(feedback.id, reviewStatus, reviewResult);
-        setIsSaving(false);
-        setIsReviewing(false);
+        try {
+            await onUpdateReview(feedback.id, reviewStatus, reviewResult);
+            showToast('Revisión actualizada con éxito.');
+            setIsReviewing(false);
+        } catch (error) {
+            console.error(error);
+            showToast('Error al actualizar la revisión.', 'error');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleDelete = async () => {
         if (!feedback.id) return;
-        await onDelete(feedback.id);
+        try {
+            await onDelete(feedback.id);
+            showToast('Feedback eliminado con éxito.');
+        } catch (error) {
+            console.error(error);
+            showToast('Error al eliminar el feedback.', 'error');
+        }
         setIsConfirmingDelete(false);
     };
 
@@ -147,7 +172,7 @@ const FeedbackCard: React.FC<{ feedback: FeedbackData; onUpdateReview: FeedbackR
     );
 };
 
-export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete }) => {
+export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete, showToast }) => {
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
@@ -176,7 +201,7 @@ export const FeedbackResults: React.FC<FeedbackResultsProps> = ({ feedbackList, 
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {paginatedFeedback.map((feedback) => (
-                            <FeedbackCard key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} onDelete={onDelete} />
+                            <FeedbackCard key={feedback.id} feedback={feedback} onUpdateReview={onUpdateReview} onDelete={onDelete} showToast={showToast} />
                         ))}
                     </div>
                     {totalPages > 1 && (

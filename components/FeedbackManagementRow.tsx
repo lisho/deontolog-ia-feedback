@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
 import { ConfirmationModal } from './ConfirmationModal.tsx';
 
@@ -8,6 +8,7 @@ interface FeedbackManagementRowProps {
     onDelete: (id: string) => Promise<void>;
     isSelected: boolean;
     onToggleSelect: (id: string) => void;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const getStatusColor = (status: ReviewStatus) => {
@@ -23,25 +24,44 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete, isSelected, onToggleSelect }) => {
+export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete, isSelected, onToggleSelect, showToast }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
     const [isSaving, setIsSaving] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     
+    // Sincroniza el estado interno cuando las props cambian desde el padre
+    useEffect(() => {
+        setReviewStatus(feedback.review_status);
+        setReviewResult(feedback.review_result);
+    }, [feedback.review_status, feedback.review_result]);
+
     const date = feedback.timestamp ? new Date(feedback.timestamp).toLocaleDateString('es-ES') : 'N/A';
 
     const handleSaveReview = async () => {
         if (!feedback.id) return;
         setIsSaving(true);
-        await onUpdateReview(feedback.id, reviewStatus, reviewResult);
-        setIsSaving(false);
+        try {
+            await onUpdateReview(feedback.id, reviewStatus, reviewResult);
+            showToast('Revisión actualizada con éxito.');
+        } catch (error) {
+            console.error(error);
+            showToast('Error al actualizar la revisión.', 'error');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleDelete = async () => {
         if (!feedback.id) return;
-        await onDelete(feedback.id);
+        try {
+            await onDelete(feedback.id);
+            showToast('Feedback eliminado con éxito.');
+        } catch (error) {
+            console.error(error);
+            showToast('Error al eliminar el feedback.', 'error');
+        }
     };
 
     const handleCheckboxClick = (e: React.MouseEvent) => {

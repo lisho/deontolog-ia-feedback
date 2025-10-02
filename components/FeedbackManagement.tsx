@@ -11,11 +11,14 @@ interface FeedbackManagementProps {
     isLoading: boolean;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
+    onBulkUpdateStatus: (ids: string[], status: ReviewStatus) => Promise<void>;
+    onBulkDelete: (ids: string[]) => Promise<void>;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete }) => {
+export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete, onBulkUpdateStatus, onBulkDelete, showToast }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isConfirmingBulkDelete, setIsConfirmingBulkDelete] = useState(false);
@@ -52,17 +55,28 @@ export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedback
     };
 
     const handleBulkUpdateStatus = async (status: ReviewStatus) => {
-        const feedbackToUpdate = feedbackList.filter(fb => fb.id && selectedIds.includes(fb.id));
-        await Promise.all(
-            feedbackToUpdate.map(fb => onUpdateReview(fb.id!, status, fb.review_result))
-        );
-        setSelectedIds([]);
+        try {
+            await onBulkUpdateStatus(selectedIds, status);
+            showToast(`${selectedIds.length} elemento(s) actualizado(s) correctamente.`);
+        } catch (error) {
+            console.error(error);
+            showToast('Error al actualizar los elementos.', 'error');
+        } finally {
+            setSelectedIds([]);
+        }
     };
 
     const handleBulkDelete = async () => {
-        await Promise.all(selectedIds.map(id => onDelete(id)));
         setIsConfirmingBulkDelete(false);
-        setSelectedIds([]);
+        try {
+            await onBulkDelete(selectedIds);
+            showToast(`${selectedIds.length} elemento(s) eliminado(s) correctamente.`);
+        } catch (error) {
+            console.error(error);
+            showToast('Error al eliminar los elementos.', 'error');
+        } finally {
+            setSelectedIds([]);
+        }
     };
 
 
@@ -122,6 +136,7 @@ export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedback
                                         onDelete={onDelete}
                                         isSelected={!!feedback.id && selectedIds.includes(feedback.id)}
                                         onToggleSelect={handleToggleSelect}
+                                        showToast={showToast}
                                     />
                                 ))}
                             </tbody>

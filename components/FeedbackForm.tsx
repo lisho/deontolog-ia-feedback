@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { FeedbackData } from '../types.ts';
 import { StarRating } from './StarRating.tsx';
 import { FeedbackConfirmationModal } from './FeedbackConfirmationModal.tsx';
@@ -75,6 +75,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FeedbackData, boolean>>>({});
     const [validFields, setValidFields] = useState<Partial<Record<keyof FeedbackData, boolean>>>({});
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const validationErrors = runValidation(formData);
@@ -157,6 +158,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
             
             setShowSuccessMessage(true);
             setTimeout(() => setShowSuccessMessage(false), 5000);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            nameInputRef.current?.focus();
+
         } catch (error) {
             console.error("Submission failed", error);
         } finally {
@@ -190,7 +195,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                     <legend className="text-lg font-semibold text-blue-700 px-2">A. Identificación del Uso</legend>
 
                     <label htmlFor="nombre_evaluador" className="block text-sm font-medium text-black mt-2">Nombre o Contacto (Opcional):</label>
-                    <input type="text" id="nombre_evaluador" name="nombre_evaluador" value={formData.nombre_evaluador} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre, email o alias" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"/>
+                    <input ref={nameInputRef} type="text" id="nombre_evaluador" name="nombre_evaluador" value={formData.nombre_evaluador} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre, email o alias" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"/>
                     <p className="text-xs text-gray-500 mb-4">Solo se usará si se requiere contactarle para ampliar la información.</p>
 
                     <label htmlFor="fecha_hora" className="block text-sm font-medium text-black mt-2">Fecha y Hora del Uso/Incidente:</label>

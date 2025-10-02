@@ -7,6 +7,13 @@ import { useDatabase } from './hooks/useDatabase.ts';
 import type { FeedbackData, FilterState } from './types.ts';
 import { FilterControls } from './components/FilterControls.tsx';
 import { GlobalSearchBar } from './components/GlobalSearchBar.tsx';
+import { ToastNotification } from './components/ToastNotification.tsx';
+
+interface ToastState {
+    show: boolean;
+    message: string;
+    type: 'success' | 'error';
+}
 
 // Componente para la vista de solo envío de feedback
 const SubmitOnlyView = () => {
@@ -40,8 +47,13 @@ const SubmitOnlyView = () => {
 
 // Componente para la vista completa con todas las funcionalidades
 const FullAppView = () => {
-    const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback } = useDatabase();
+    const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback } = useDatabase();
     const [view, setView] = useState<'form' | 'results' | 'management' | 'dashboard'>('form');
+    const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
+
+    const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ show: true, message, type });
+    }, []);
 
     // --- Lógica de Filtrado y Búsqueda ---
     const initialFilterState: FilterState = {
@@ -120,9 +132,17 @@ const FullAppView = () => {
             case 'form':
                 return <FeedbackForm onSubmit={handleFormSubmit} />;
             case 'results':
-                return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} />;
+                return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} showToast={showToast} />;
             case 'management':
-                 return <FeedbackManagement feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} />;
+                 return <FeedbackManagement 
+                    feedbackList={filteredFeedback} 
+                    isLoading={isLoading} 
+                    onUpdateReview={updateFeedbackReview} 
+                    onDelete={deleteFeedback} 
+                    onBulkUpdateStatus={bulkUpdateFeedbackStatus}
+                    onBulkDelete={bulkDeleteFeedback}
+                    showToast={showToast} 
+                />;
             case 'dashboard':
                 return <DashboardView feedbackList={filteredFeedback} />;
             default:
@@ -173,6 +193,13 @@ const FullAppView = () => {
             <footer className="text-center py-4 text-gray-500 text-sm">
                 <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
             </footer>
+            {toast.show && (
+                <ToastNotification
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
+            )}
         </div>
     );
 };

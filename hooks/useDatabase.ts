@@ -150,7 +150,68 @@ export const useDatabase = () => {
             }
         });
     }, []);
+    
+    const bulkUpdateFeedbackStatus = useCallback((ids: string[], status: ReviewStatus) => {
+        return openDB().then(db => {
+            return new Promise<void>((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+
+                // Queue all update operations
+                ids.forEach(id => {
+                    const getRequest = store.get(id);
+                    getRequest.onsuccess = () => {
+                        const item = getRequest.result;
+                        if (item) {
+                            const updatedItem = { ...item, review_status: status };
+                            store.put(updatedItem);
+                        }
+                    };
+                });
+
+                transaction.oncomplete = () => {
+                    // Update React state only after the DB transaction is successful
+                    setFeedbackList(prev =>
+                        prev.map(fb =>
+                            fb.id && ids.includes(fb.id) ? { ...fb, review_status: status } : fb
+                        )
+                    );
+                    resolve();
+                };
+
+                transaction.onerror = () => {
+                    console.error("Bulk update transaction failed", transaction.error);
+                    reject(transaction.error);
+                };
+            });
+        });
+    }, []);
+
+    const bulkDeleteFeedback = useCallback((ids: string[]) => {
+        return openDB().then(db => {
+            return new Promise<void>((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+
+                // Queue all delete operations
+                ids.forEach(id => {
+                    store.delete(id);
+                });
+
+                transaction.oncomplete = () => {
+                    // Update React state only after the DB transaction is successful
+                    setFeedbackList(prev => prev.filter(fb => fb.id && !ids.includes(fb.id)));
+                    resolve();
+                };
+
+                transaction.onerror = () => {
+                    console.error("Bulk delete transaction failed", transaction.error);
+                    reject(transaction.error);
+                };
+            });
+        });
+    }, []);
 
 
-    return { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback };
+    return { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback };
 };
