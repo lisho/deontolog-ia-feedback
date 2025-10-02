@@ -6,6 +6,8 @@ interface FeedbackManagementRowProps {
     feedback: FeedbackData;
     onUpdateReview: (id: string, status: ReviewStatus, result: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
+    isSelected: boolean;
+    onToggleSelect: (id: string) => void;
 }
 
 const getStatusColor = (status: ReviewStatus) => {
@@ -21,7 +23,7 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete }) => {
+export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete, isSelected, onToggleSelect }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
@@ -39,30 +41,50 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
 
     const handleDelete = async () => {
         if (!feedback.id) return;
-        // No es necesario cerrar el modal aquí, ya que el componente se desmontará si el borrado tiene éxito.
         await onDelete(feedback.id);
+    };
+
+    const handleCheckboxClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevents row from expanding/collapsing
+        if (feedback.id) {
+            onToggleSelect(feedback.id);
+        }
     };
 
     return (
         <>
-            <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-                <td className="py-3 px-4 text-sm text-gray-700">{date}</td>
-                <td className="py-3 px-4 text-sm text-gray-700">{feedback.escenario_keywords}</td>
-                <td className="py-3 px-4 text-sm text-gray-700">{feedback.tipo_feedback}</td>
-                <td className="py-3 px-4 text-sm text-center text-amber-500 font-bold">{feedback.valoracion_deontologica || 'N/A'}</td>
-                <td className="py-3 px-4 text-sm">
+            <tr className={`border-b border-gray-200 hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                <td className="py-3 px-4" onClick={handleCheckboxClick}>
+                     <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                        checked={isSelected}
+                        readOnly // The click is handled by the parent td
+                        aria-label={`Seleccionar feedback de ${feedback.escenario_keywords}`}
+                    />
+                </td>
+                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{date}</td>
+                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.escenario_keywords}</td>
+                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.tipo_feedback}</td>
+                <td className="py-3 px-4 text-sm text-center text-amber-500 font-bold cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.valoracion_deontologica || 'N/A'}</td>
+                <td className="py-3 px-4 text-sm cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(reviewStatus)}`}>
                         {reviewStatus}
                     </span>
                 </td>
             </tr>
             {isExpanded && (
-                <tr className="bg-gray-50 border-b border-gray-200">
-                    <td colSpan={5} className="p-4">
+                <tr className={`border-b border-gray-200 ${isSelected ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    <td colSpan={6} className="p-4">
                         <div className="space-y-3">
                             <div>
                                 <h4 className="font-semibold text-gray-800">Detalles del Feedback</h4>
                                 <p className="text-sm text-gray-600 mt-1"><strong>Contacto:</strong> {feedback.nombre_evaluador || 'Anónimo'}</p>
+                                {feedback.tipo_feedback === 'Valorar Conversación' && (
+                                     <p className="text-sm text-gray-600 mt-1">
+                                        <strong>Valoraciones:</strong> Deontológica: {feedback.valoracion_deontologica || 'N/A'} ★ | Pertinencia: {feedback.valoracion_pertinencia || 'N/A'} ★ | Calidad: {feedback.valoracion_calidad_interaccion || 'N/A'} ★
+                                    </p>
+                                )}
                                 <p className="text-sm text-gray-600"><strong>Descripción:</strong> {feedback.descripcion}</p>
                                 {feedback.respuesta_chatbot && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Respuesta IA:</strong> <em>"{feedback.respuesta_chatbot}"</em></p>}
                             </div>

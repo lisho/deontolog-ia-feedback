@@ -3,6 +3,8 @@ import type { FeedbackData } from '../types.ts';
 import { KpiCard } from './KpiCard.tsx';
 import { FeedbackByTypeChart } from './charts/FeedbackByTypeChart.tsx';
 import { FeedbackByStatusChart } from './charts/FeedbackByStatusChart.tsx';
+import { ClarityUtilityChart } from './charts/ClarityUtilityChart.tsx';
+import { RatingDistributionChart } from './charts/RatingDistributionChart.tsx';
 
 interface DashboardViewProps {
     feedbackList: FeedbackData[];
@@ -31,6 +33,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
             return acc;
         }, {} as Record<string, number>);
 
+        // Stats for "Valorar Conversación"
+        const conversationFeedback = feedbackList.filter(fb => fb.tipo_feedback === 'Valorar Conversación');
+
+        const clarityData = conversationFeedback.reduce((acc, fb) => {
+            if (fb.claridad === 'Sí' || fb.claridad === 'No') {
+                acc[fb.claridad] = (acc[fb.claridad] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        const utilityData = conversationFeedback.reduce((acc, fb) => {
+             if (fb.utilidad === 'Sí' || fb.utilidad === 'No' || fb.utilidad === 'No Estoy Seguro') {
+                acc[fb.utilidad] = (acc[fb.utilidad] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        const getRatingDistribution = (fieldName: keyof FeedbackData) => {
+            const distribution = conversationFeedback
+                .filter(fb => typeof fb[fieldName] === 'number' && (fb[fieldName] as number) > 0)
+                .reduce((acc, fb) => {
+                    const rating = fb[fieldName] as number;
+                    acc[rating] = (acc[rating] || 0) + 1;
+                    return acc;
+                }, {} as Record<number, number>);
+            
+            return Array.from({ length: 5 }, (_, i) => 5 - i).map(rating => ({
+                rating: `${rating} ★`,
+                count: distribution[rating] || 0
+            }));
+        };
+
         return {
             total,
             pending,
@@ -40,6 +74,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                 .sort((a, b) => b.value - a.value),
             byStatus: Object.entries(feedbackByStatus)
                 .map(([label, value]) => ({ label, value })),
+            clarity: Object.entries(clarityData).map(([label, value]) => ({ label, value })),
+            utility: Object.entries(utilityData).map(([label, value]) => ({ label, value })),
+            deontologicalRatingDist: getRatingDistribution('valoracion_deontologica'),
+            pertinenceRatingDist: getRatingDistribution('valoracion_pertinencia'),
+            interactionQualityRatingDist: getRatingDistribution('valoracion_calidad_interaccion'),
         };
     }, [feedbackList]);
 
@@ -59,7 +98,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
         <div className="mt-6 mb-6">
             <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Estadísticas y Métricas Clave</h3>
             
-            {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <KpiCard 
                     title="Total de Feedbacks"
@@ -72,16 +110,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                     description={`${stats.total > 0 ? ((stats.pending / stats.total) * 100).toFixed(0) : 0}% del total.`}
                 />
                 <KpiCard 
-                    title="Valoración Media"
+                    title="Valoración Media (Deont.)"
                     value={`${stats.avgRating} ★`}
                     description="Promedio de la valoración deontológica."
                 />
             </div>
 
-            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <FeedbackByTypeChart data={stats.byType} />
                 <FeedbackByStatusChart data={statusChartData} />
+            </div>
+
+            <div className="mt-8">
+                <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Métricas de Conversación</h3>
+                <div className="grid grid-cols-1 gap-6 mt-4">
+                    <ClarityUtilityChart clarityData={stats.clarity} utilityData={stats.utility} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <RatingDistributionChart 
+                        data={stats.deontologicalRatingDist}
+                        title="Valoración Deontológica"
+                        color="#F59E0B"
+                    />
+                    <RatingDistributionChart 
+                        data={stats.pertinenceRatingDist}
+                        title="Pertinencia de Respuestas"
+                        color="#8B5CF6"
+                    />
+                    <RatingDistributionChart 
+                        data={stats.interactionQualityRatingDist}
+                        title="Calidad de Interacción"
+                        color="#EC4899"
+                    />
+                </div>
             </div>
         </div>
     );

@@ -43,7 +43,9 @@ export const FeedbackConfirmationModal: React.FC<FeedbackConfirmationModalProps>
                             <>
                                 <DataRow label="Claridad" value={feedbackData.claridad} />
                                 <DataRow label="Utilidad" value={feedbackData.utilidad} />
-                                <DataRow label="Valoración Deontológica" value={`${feedbackData.valoracion_deontologica} ★`} />
+                                <DataRow label="Valoración Deontológica" value={feedbackData.valoracion_deontologica > 0 ? `${feedbackData.valoracion_deontologica} ★` : null} />
+                                <DataRow label="Pertinencia Respuestas" value={feedbackData.valoracion_pertinencia > 0 ? `${feedbackData.valoracion_pertinencia} ★` : null} />
+                                <DataRow label="Calidad Interacción" value={feedbackData.valoracion_calidad_interaccion > 0 ? `${feedbackData.valoracion_calidad_interaccion} ★` : null} />
                             </>
                         )}
 

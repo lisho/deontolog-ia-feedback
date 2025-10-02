@@ -25,7 +25,8 @@ const convertToCsv = (data: FeedbackData[]): string => {
     const headers: (keyof FeedbackData)[] = [
         'id', 'nombre_evaluador', 'fecha_hora', 'timestamp', 'dispositivo', 'escenario_keywords', 
         'tipo_feedback', 'descripcion', 'respuesta_chatbot', 'claridad', 'utilidad',
-        'valoracion_deontologica', 'comentarios_finales', 'review_status', 'review_result'
+        'valoracion_deontologica', 'valoracion_pertinencia', 'valoracion_calidad_interaccion', 
+        'comentarios_finales', 'review_status', 'review_result'
     ];
     
     const headerRow = headers.map(formatCsvField).join(',');

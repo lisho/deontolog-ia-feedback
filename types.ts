@@ -12,6 +12,8 @@ export interface FeedbackData {
   claridad: 'Sí' | 'No' | '';
   utilidad: 'Sí' | 'No' | 'No Estoy Seguro' | '';
   valoracion_deontologica: number;
+  valoracion_pertinencia: number;
+  valoracion_calidad_interaccion: number;
   comentarios_finales: string;
   timestamp?: Date;
   review_status: ReviewStatus;
