@@ -3,7 +3,13 @@ import type { FeedbackData } from '../types.ts';
 import { StarRating } from './StarRating.tsx';
 import { FeedbackConfirmationModal } from './FeedbackConfirmationModal.tsx';
 
-const getInitialState = (): FeedbackData => {
+interface FeedbackFormProps {
+    onSubmit: (data: FeedbackData) => Promise<void>;
+    formType: 'iteration' | 'conversation';
+    onBack: () => void;
+}
+
+const getInitialState = (formType: 'iteration' | 'conversation'): FeedbackData => {
     const now = new Date();
     // Adjust for timezone offset to get local time in YYYY-MM-DDTHH:mm format
     const timezoneOffset = now.getTimezoneOffset() * 60000;
@@ -14,7 +20,7 @@ const getInitialState = (): FeedbackData => {
         fecha_hora: localISOTime,
         dispositivo: '',
         escenario_keywords: '',
-        tipo_feedback: '',
+        tipo_feedback: formType === 'conversation' ? 'Valorar Conversación' : '',
         descripcion: '',
         respuesta_chatbot: '',
         claridad: '',
@@ -28,17 +34,13 @@ const getInitialState = (): FeedbackData => {
     };
 };
 
-interface FeedbackFormProps {
-    onSubmit: (data: FeedbackData) => Promise<void>;
-}
-
 const CheckmarkIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
     <svg className={`h-5 w-5 text-green-500 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
     </svg>
 );
 
-const runValidation = (data: FeedbackData): Partial<Record<keyof FeedbackData, string>> => {
+const runValidation = (data: FeedbackData, formType: 'iteration' | 'conversation'): Partial<Record<keyof FeedbackData, string>> => {
     const newErrors: Partial<Record<keyof FeedbackData, string>> = {};
 
     if (!data.dispositivo) {
@@ -47,14 +49,17 @@ const runValidation = (data: FeedbackData): Partial<Record<keyof FeedbackData, s
     if (!data.escenario_keywords.trim()) {
         newErrors.escenario_keywords = 'Debe rellenar las palabras clave del escenario.';
     }
-    if (!data.tipo_feedback) {
-        newErrors.tipo_feedback = 'Debe seleccionar un tipo de feedback.';
-    }
-    if (!data.descripcion.trim()) {
-        newErrors.descripcion = 'La descripción detallada es obligatoria.';
+    
+    if (formType === 'iteration') {
+        if (!data.tipo_feedback) {
+            newErrors.tipo_feedback = 'Debe seleccionar un tipo de feedback.';
+        }
+        if (!data.descripcion.trim()) {
+            newErrors.descripcion = 'La descripción detallada es obligatoria.';
+        }
     }
 
-    if (data.tipo_feedback === 'Valorar Conversación') {
+    if (formType === 'conversation') {
         if (!data.claridad) {
             newErrors.claridad = 'Debe seleccionar si la respuesta fue clara.';
         }
@@ -67,8 +72,8 @@ const runValidation = (data: FeedbackData): Partial<Record<keyof FeedbackData, s
 };
 
 
-export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
-    const [formData, setFormData] = useState<FeedbackData>(getInitialState());
+export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, onBack }) => {
+    const [formData, setFormData] = useState<FeedbackData>(getInitialState(formType));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof FeedbackData, string>>>({});
@@ -78,7 +83,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const validationErrors = runValidation(formData);
+        const validationErrors = runValidation(formData, formType);
         const newValidFields: Partial<Record<keyof FeedbackData, boolean>> = {};
 
         const fieldsToValidate: (keyof FeedbackData)[] = [
@@ -93,7 +98,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
             }
         });
         setValidFields(newValidFields);
-    }, [formData, touchedFields]);
+    }, [formData, touchedFields, formType]);
 
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -121,7 +126,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
     }, []);
 
     const validateForm = () => {
-        const newErrors = runValidation(formData);
+        const newErrors = runValidation(formData, formType);
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -132,36 +137,29 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
         if (validateForm()) {
             setIsConfirmModalOpen(true);
         } else {
-            // Mark all fields as touched to show errors for empty fields
-            setTouchedFields({
+             const allTouched = {
                 dispositivo: true,
                 escenario_keywords: true,
-                tipo_feedback: true,
-                descripcion: true,
-                claridad: formData.tipo_feedback === 'Valorar Conversación',
-                utilidad: formData.tipo_feedback === 'Valorar Conversación',
-            });
+             };
+             if (formType === 'iteration') {
+                allTouched['tipo_feedback'] = true;
+                allTouched['descripcion'] = true;
+             }
+             if (formType === 'conversation') {
+                 allTouched['claridad'] = true;
+                 allTouched['utilidad'] = true;
+             }
+            setTouchedFields(allTouched);
         }
     };
 
     const handleConfirmSubmit = async () => {
         setIsConfirmModalOpen(false);
         setIsSubmitting(true);
-        setShowSuccessMessage(false);
         try {
             await onSubmit(formData);
-            
-            setFormData(getInitialState());
-            setErrors({});
-            setTouchedFields({});
-            setValidFields({});
-            
             setShowSuccessMessage(true);
-            setTimeout(() => setShowSuccessMessage(false), 5000);
-
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            nameInputRef.current?.focus();
-
         } catch (error) {
             console.error("Submission failed", error);
         } finally {
@@ -169,17 +167,45 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
         }
     };
     
-    const isConversationValuation = formData.tipo_feedback === 'Valorar Conversación';
+    const isConversationValuation = formType === 'conversation';
+
+    if (showSuccessMessage) {
+        return (
+            <div className="text-center p-8">
+                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-6 rounded-md shadow-sm mb-8" role="alert">
+                    <p className="font-bold text-lg">¡Feedback Enviado!</p>
+                    <p>Gracias por tu contribución. Tu opinión es muy valiosa para nosotros.</p>
+                </div>
+                <button 
+                    onClick={onBack} 
+                    className="w-full max-w-xs flex justify-center items-center bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-semibold text-white py-3 rounded-lg transition duration-150 mx-auto"
+                >
+                    Volver al Inicio
+                </button>
+            </div>
+        );
+    }
+
 
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                {showSuccessMessage && (
-                    <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md shadow-sm" role="alert">
-                        <p className="font-bold">¡Feedback Enviado!</p>
-                        <p>Gracias por tu contribución. Tu opinión es muy valiosa para nosotros.</p>
+                 <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">
+                            {isConversationValuation ? 'Feedback de Conversación Completa' : 'Feedback de Iteración Concreta'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {isConversationValuation
+                                ? 'Evalúe la calidad general de una interacción completa, incluyendo claridad, utilidad y aspectos deontológicos.'
+                                : 'Reporte un error, sugiera una mejora o valore un aspecto específico de una respuesta del chatbot.'
+                            }
+                        </p>
                     </div>
-                )}
+                    <button type="button" onClick={onBack} className="text-sm text-blue-600 hover:underline font-medium flex-shrink-0 mt-1">
+                        &larr; Volver al inicio
+                    </button>
+                </div>
                 <style>{`
                     input[type="datetime-local"].date-input-fix {
                         color: black;
@@ -229,43 +255,46 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit }) => {
                     {errors.escenario_keywords && <p className="text-red-500 text-xs mt-1">{errors.escenario_keywords}</p>}
                 </fieldset>
 
-                <fieldset className="p-4 border border-gray-200 rounded-lg">
-                    <legend className="text-lg font-semibold text-gray-800 px-2 flex items-center gap-2">
-                        B. Tipo de Feedback (Marque una)
-                        {validFields.tipo_feedback && <CheckmarkIcon />}
-                    </legend>
-                    <div className="mt-2 space-y-2">
-                        {[
-                            { id: 'error', value: 'Error o Fallo', label: '1. Reporte de Error o Fallo (Bug)' },
-                            { id: 'mejora', value: 'Sugerencia de Mejora', label: '2. Sugerencia de Mejora' },
-                            { id: 'positivo', value: 'Valoración Positiva / Uso Relevante', label: '3. Valoración Positiva / Uso Relevante' },
-                            { id: 'etica', value: 'Inquietud Ética/Deontológica', label: '4. Inquietud Ética/Deontológica' },
-                            { id: 'valorar', value: 'Valorar Conversación', label: '5. Valorar Conversación Completa' },
-                        ].map(option => (
-                            <div key={option.id} className="flex items-center">
-                                <input type="radio" id={option.id} name="tipo_feedback" value={option.value} checked={formData.tipo_feedback === option.value} onChange={handleChange} onBlur={handleBlur} className="text-blue-600 focus:ring-blue-500" required/>
-                                <label htmlFor={option.id} className="ml-3 text-sm font-medium text-black">{option.label}</label>
+                {formType === 'iteration' && (
+                    <>
+                        <fieldset className="p-4 border border-gray-200 rounded-lg">
+                            <legend className="text-lg font-semibold text-gray-800 px-2 flex items-center gap-2">
+                                B. Tipo de Feedback (Marque una)
+                                {validFields.tipo_feedback && <CheckmarkIcon />}
+                            </legend>
+                            <div className="mt-2 space-y-2">
+                                {[
+                                    { id: 'error', value: 'Error o Fallo', label: '1. Reporte de Error o Fallo (Bug)' },
+                                    { id: 'mejora', value: 'Sugerencia de Mejora', label: '2. Sugerencia de Mejora' },
+                                    { id: 'positivo', value: 'Valoración Positiva / Uso Relevante', label: '3. Valoración Positiva / Uso Relevante' },
+                                    { id: 'etica', value: 'Inquietud Ética/Deontológica', label: '4. Inquietud Ética/Deontológica' },
+                                ].map(option => (
+                                    <div key={option.id} className="flex items-center">
+                                        <input type="radio" id={option.id} name="tipo_feedback" value={option.value} checked={formData.tipo_feedback === option.value} onChange={handleChange} onBlur={handleBlur} className="text-blue-600 focus:ring-blue-500" required/>
+                                        <label htmlFor={option.id} className="ml-3 text-sm font-medium text-black">{option.label}</label>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                    {errors.tipo_feedback && <p className="text-red-500 text-xs mt-2">{errors.tipo_feedback}</p>}
-                </fieldset>
+                            {errors.tipo_feedback && <p className="text-red-500 text-xs mt-2">{errors.tipo_feedback}</p>}
+                        </fieldset>
 
-                <fieldset className="p-4 border border-gray-200 rounded-lg">
-                    <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
-                    <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
-                    <div className="relative">
-                        <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} onBlur={handleBlur} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
-                         {validFields.descripcion && (
-                            <div className="absolute top-0 right-0 pt-3 pr-3 flex items-center pointer-events-none">
-                                <CheckmarkIcon />
+                        <fieldset className="p-4 border border-gray-200 rounded-lg">
+                            <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
+                            <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
+                            <div className="relative">
+                                <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} onBlur={handleBlur} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
+                                {validFields.descripcion && (
+                                    <div className="absolute top-0 right-0 pt-3 pr-3 flex items-center pointer-events-none">
+                                        <CheckmarkIcon />
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
-                    <label htmlFor="respuesta_chatbot" className="block text-sm font-medium text-black mt-4">Copia aquí la respuesta del chatbot (opcional):</label>
-                    <textarea id="respuesta_chatbot" name="respuesta_chatbot" value={formData.respuesta_chatbot} onChange={handleChange} onBlur={handleBlur} rows={3} placeholder="Pegue la respuesta de la IA para facilitar la revisión deontológica." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
-                </fieldset>
+                            {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
+                            <label htmlFor="respuesta_chatbot" className="block text-sm font-medium text-black mt-4">Copia aquí la respuesta del chatbot (opcional):</label>
+                            <textarea id="respuesta_chatbot" name="respuesta_chatbot" value={formData.respuesta_chatbot} onChange={handleChange} onBlur={handleBlur} rows={3} placeholder="Pegue la respuesta de la IA para facilitar la revisión deontológica." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
+                        </fieldset>
+                    </>
+                )}
                 
                 {isConversationValuation && (
                     <fieldset className="p-4 border border-yellow-200 rounded-lg bg-yellow-50 transition-all duration-300">

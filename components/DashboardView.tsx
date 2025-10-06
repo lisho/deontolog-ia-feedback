@@ -10,6 +10,9 @@ interface DashboardViewProps {
     feedbackList: FeedbackData[];
 }
 
+// FIX: Define a more specific type for rating keys to ensure type safety.
+type RatingKeys = 'valoracion_deontologica' | 'valoracion_pertinencia' | 'valoracion_calidad_interaccion';
+
 export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) => {
     
     const stats = useMemo(() => {
@@ -21,43 +24,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
             ? (ratedFeedback.reduce((acc, fb) => acc + fb.valoracion_deontologica, 0) / ratedFeedback.length)
             : 0;
 
-        const feedbackByType = feedbackList.reduce((acc, fb) => {
+        // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
+        const feedbackByType = feedbackList.reduce((acc: Record<string, number>, fb) => {
             const type = fb.tipo_feedback || 'Sin tipo';
             acc[type] = (acc[type] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
 
-        const feedbackByStatus = feedbackList.reduce((acc, fb) => {
+        // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
+        const feedbackByStatus = feedbackList.reduce((acc: Record<string, number>, fb) => {
             const status = fb.review_status || 'Sin estado';
             acc[status] = (acc[status] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
 
         // Stats for "Valorar Conversación"
         const conversationFeedback = feedbackList.filter(fb => fb.tipo_feedback === 'Valorar Conversación');
 
-        const clarityData = conversationFeedback.reduce((acc, fb) => {
+        // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
+        const clarityData = conversationFeedback.reduce((acc: Record<string, number>, fb) => {
             if (fb.claridad === 'Sí' || fb.claridad === 'No') {
                 acc[fb.claridad] = (acc[fb.claridad] || 0) + 1;
             }
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
 
-        const utilityData = conversationFeedback.reduce((acc, fb) => {
+        // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
+        const utilityData = conversationFeedback.reduce((acc: Record<string, number>, fb) => {
              if (fb.utilidad === 'Sí' || fb.utilidad === 'No' || fb.utilidad === 'No Estoy Seguro') {
                 acc[fb.utilidad] = (acc[fb.utilidad] || 0) + 1;
             }
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
 
-        const getRatingDistribution = (fieldName: keyof FeedbackData) => {
+        const getRatingDistribution = (fieldName: RatingKeys) => {
+            // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
             const distribution = conversationFeedback
                 .filter(fb => typeof fb[fieldName] === 'number' && (fb[fieldName] as number) > 0)
-                .reduce((acc, fb) => {
+                .reduce((acc: Record<number, number>, fb) => {
                     const rating = fb[fieldName] as number;
                     acc[rating] = (acc[rating] || 0) + 1;
                     return acc;
-                }, {} as Record<number, number>);
+                }, {});
             
             return Array.from({ length: 5 }, (_, i) => 5 - i).map(rating => ({
                 rating: `${rating} ★`,

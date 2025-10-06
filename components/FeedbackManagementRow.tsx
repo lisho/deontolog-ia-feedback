@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
 import { ConfirmationModal } from './ConfirmationModal.tsx';
+import { GoogleGenAI } from '@google/genai';
 
 interface FeedbackManagementRowProps {
     feedback: FeedbackData;
@@ -30,6 +31,7 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
     const [isSaving, setIsSaving] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+    const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     
     // Sincroniza el estado interno cuando las props cambian desde el padre
     useEffect(() => {
@@ -38,6 +40,57 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
     }, [feedback.review_status, feedback.review_result]);
 
     const date = feedback.timestamp ? new Date(feedback.timestamp).toLocaleDateString('es-ES') : 'N/A';
+
+    const handleGenerateSummary = async () => {
+        if (!process.env.API_KEY) {
+            showToast('API Key no configurada.', 'error');
+            return;
+        }
+        setIsGeneratingSummary(true);
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            
+            const prompt = `
+                Eres un analista experto en feedback para un chatbot de deontología en trabajo social.
+                Analiza el siguiente feedback y genera un resumen conciso y bien estructurado para el equipo de revisión.
+                El resumen debe tener 3 partes claras con títulos en negrita:
+                1.  **Problema Principal:** Describe el núcleo del feedback (error, sugerencia, inquietud).
+                2.  **Sentimiento del Usuario:** Infiere si el sentimiento es positivo, negativo o neutral, basándote en el texto y las valoraciones.
+                3.  **Acción Sugerida:** Propón un siguiente paso concreto para el equipo (ej: "investigar bug", "considerar para futura mejora", "archivar como positivo", "escalar a comité de ética").
+
+                Aquí están los datos del feedback:
+                - **Tipo de Feedback:** ${feedback.tipo_feedback}
+                - **Escenario:** ${feedback.escenario_keywords}
+                - **Descripción del Usuario:** ${feedback.descripcion}
+                - **Respuesta del Chatbot (si aplica):** ${feedback.respuesta_chatbot || 'No proporcionada'}
+                - **Comentarios Finales:** ${feedback.comentarios_finales || 'No proporcionados'}
+                ${feedback.tipo_feedback === 'Valorar Conversación' ? `
+                - **Claridad:** ${feedback.claridad}
+                - **Utilidad:** ${feedback.utilidad}
+                - **Valoración Deontológica:** ${feedback.valoracion_deontologica}/5
+                - **Valoración Pertinencia:** ${feedback.valoracion_pertinencia}/5
+                - **Valoración Calidad Interacción:** ${feedback.valoracion_calidad_interaccion}/5
+                ` : ''}
+
+                Genera el resumen ahora.
+            `;
+    
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+    
+            const summary = response.text;
+            setReviewResult(summary);
+            showToast('Resumen generado con éxito.');
+    
+        } catch (error) {
+            console.error("Error generating summary:", error);
+            showToast('Error al generar el resumen.', 'error');
+        } finally {
+            setIsGeneratingSummary(false);
+        }
+    };
 
     const handleSaveReview = async () => {
         if (!feedback.id) return;
@@ -125,14 +178,34 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                         </select>
                                     </div>
                                     <div>
-                                        <label htmlFor={`review-result-${feedback.id}`} className="block text-sm font-medium text-black">Resultado / Notas</label>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label htmlFor={`review-result-${feedback.id}`} className="block text-sm font-medium text-black">Resultado / Notas</label>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleGenerateSummary} 
+                                                disabled={isGeneratingSummary}
+                                                className="px-3 py-1 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-md disabled:bg-violet-400 disabled:cursor-wait flex items-center gap-1"
+                                            >
+                                                {isGeneratingSummary ? (
+                                                    <>
+                                                        <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span>Generando...</span>
+                                                    </>
+                                                ) : (
+                                                    '✨ Generar Resumen IA'
+                                                )}
+                                            </button>
+                                        </div>
                                         <textarea
                                             id={`review-result-${feedback.id}`}
-                                            rows={2}
+                                            rows={4}
                                             value={reviewResult}
                                             onChange={(e) => setReviewResult(e.target.value)}
-                                            placeholder="Añadir notas sobre la revisión..."
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-sm bg-white text-black placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Añadir notas sobre la revisión o generar un resumen con IA..."
+                                            className="block w-full rounded-md border-gray-300 shadow-sm p-2 text-sm bg-white text-black placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                 </div>

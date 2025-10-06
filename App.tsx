@@ -4,10 +4,14 @@ import { FeedbackResults } from './components/FeedbackResults.tsx';
 import { FeedbackManagement } from './components/FeedbackManagement.tsx';
 import { DashboardView } from './components/DashboardView.tsx';
 import { useDatabase } from './hooks/useDatabase.ts';
-import type { FeedbackData, FilterState } from './types.ts';
+import type { FeedbackData, FilterState, ReviewStatus } from './types.ts';
 import { FilterControls } from './components/FilterControls.tsx';
 import { GlobalSearchBar } from './components/GlobalSearchBar.tsx';
 import { ToastNotification } from './components/ToastNotification.tsx';
+import { WelcomeView } from './components/WelcomeView.tsx';
+import { LoginModal } from './components/LoginModal.tsx';
+import { InstructionsModal } from './components/InstructionsModal.tsx';
+
 
 interface ToastState {
     show: boolean;
@@ -15,40 +19,10 @@ interface ToastState {
     type: 'success' | 'error';
 }
 
-// Componente para la vista de solo envío de feedback
-const SubmitOnlyView = () => {
-    const { addFeedback } = useDatabase();
-
-    const handleFormSubmit = async (data: FeedbackData) => {
-        await addFeedback(data);
-        // La alerta ha sido reemplazada por un mensaje en la interfaz dentro de FeedbackForm.
-    };
-
-    return (
-        <div className="bg-gray-100 min-h-screen font-sans">
-            <header className="bg-white shadow-md">
-                <nav className="container mx-auto px-6 py-3">
-                    <h1 className="text-2xl font-bold text-blue-600">Deontolog-IA Formulario de Feedback</h1>
-                </nav>
-            </header>
-            <main className="container mx-auto p-4 md:p-8">
-                <div className="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Enviar Feedback</h2>
-                    <p className="text-gray-600 mb-6">Utilice este formulario para reportar errores, sugerir mejoras o compartir cualquier inquietud sobre las respuestas del chatbot.</p>
-                    <FeedbackForm onSubmit={handleFormSubmit} />
-                </div>
-            </main>
-            <footer className="text-center py-4 text-gray-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
-            </footer>
-        </div>
-    );
-};
-
-// Componente para la vista completa con todas las funcionalidades
-const FullAppView = () => {
+// Component for the full administrative view
+const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
     const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback } = useDatabase();
-    const [view, setView] = useState<'form' | 'results' | 'management' | 'dashboard'>('form');
+    const [view, setView] = useState<'results' | 'management' | 'dashboard'>('results');
     const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
 
     const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -121,16 +95,9 @@ const FullAppView = () => {
         });
     }, [feedbackList, filters, searchTerm]);
     // --- Fin Lógica de Filtrado y Búsqueda ---
-
-    const handleFormSubmit = async (data: FeedbackData) => {
-        await addFeedback(data);
-        setView('results');
-    };
     
     const renderView = () => {
         switch (view) {
-            case 'form':
-                return <FeedbackForm onSubmit={handleFormSubmit} />;
             case 'results':
                 return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} showToast={showToast} />;
             case 'management':
@@ -146,33 +113,33 @@ const FullAppView = () => {
             case 'dashboard':
                 return <DashboardView feedbackList={filteredFeedback} />;
             default:
-                return <FeedbackForm onSubmit={handleFormSubmit} />;
+                return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} showToast={showToast} />;
         }
     };
 
     return (
-        <div className="bg-gray-100 min-h-screen font-sans">
+        <>
             <header className="bg-white shadow-md">
                 <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-blue-600"> Deontolog-IA - Plataforma de Feedback</h1>
-                    <div>
-                        <button onClick={() => setView('form')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'form' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
-                            Enviar Feedback
-                        </button>
-                        <button onClick={() => setView('results')} className={`ml-4 px-4 py-2 rounded-md text-sm font-medium ${view === 'results' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                    <h1 className="text-2xl font-bold text-blue-600"> Deontolog-IA - Panel de Administración</h1>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setView('results')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'results' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                             Ver Resultados
                         </button>
-                        <button onClick={() => setView('management')} className={`ml-4 px-4 py-2 rounded-md text-sm font-medium ${view === 'management' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                        <button onClick={() => setView('management')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'management' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                             Gestionar
                         </button>
-                        <button onClick={() => setView('dashboard')} className={`ml-4 px-4 py-2 rounded-md text-sm font-medium ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                        <button onClick={() => setView('dashboard')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                             Estadísticas
+                        </button>
+                         <button onClick={onLogout} className="px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-100 border border-red-200">
+                            Salir
                         </button>
                     </div>
                 </nav>
             </header>
             <main className="container mx-auto p-4 md:p-8">
-                <div className={`mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg transition-all duration-300 ${view !== 'form' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+                <div className="mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg transition-all duration-300 max-w-7xl">
                     {(view === 'results' || view === 'management') && (
                         <GlobalSearchBar 
                             searchTerm={searchTerm} 
@@ -190,9 +157,6 @@ const FullAppView = () => {
                     {renderView()}
                 </div>
             </main>
-            <footer className="text-center py-4 text-gray-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
-            </footer>
             {toast.show && (
                 <ToastNotification
                     message={toast.message}
@@ -200,25 +164,88 @@ const FullAppView = () => {
                     onClose={() => setToast({ ...toast, show: false })}
                 />
             )}
-        </div>
+        </>
     );
 };
 
 function App() {
-    const [isSubmitOnly] = useState(() => {
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('mode') === 'submit';
-        } catch (e) {
-            return false;
+    const [appState, setAppState] = useState<'welcome' | 'iteration_form' | 'conversation_form' | 'admin'>('welcome');
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
+    const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+    const { addFeedback } = useDatabase();
+
+    const handleLogin = (user: string, pass: string): boolean => {
+        if (user === 'admin' && pass === 'admin') {
+            setIsLoginOpen(false);
+            setAppState('admin');
+            return true;
         }
-    });
+        return false;
+    };
+    
+    const handleLogout = () => {
+        setAppState('welcome');
+    };
 
-    if (isSubmitOnly) {
-        return <SubmitOnlyView />;
-    }
+    const handleFormSubmit = async (data: FeedbackData) => {
+        await addFeedback(data);
+    };
 
-    return <FullAppView />;
+    const handleGoToWelcome = () => {
+        setAppState('welcome');
+    };
+
+    const renderMainContent = () => {
+        switch(appState) {
+            case 'admin':
+                return <FullAppView onLogout={handleLogout} />;
+            
+            case 'iteration_form':
+            case 'conversation_form':
+                return (
+                     <main className="container mx-auto p-4 md:p-8">
+                        <div className="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                            <FeedbackForm 
+                                onSubmit={handleFormSubmit} 
+                                formType={appState === 'iteration_form' ? 'iteration' : 'conversation'}
+                                onBack={handleGoToWelcome} 
+                            />
+                        </div>
+                    </main>
+                );
+
+            case 'welcome':
+            default:
+                 return (
+                     <main className="container mx-auto p-4 md:p-8 flex items-center justify-center min-h-[calc(100vh-100px)]">
+                        <WelcomeView 
+                            onNavigate={(formType) => setAppState(formType === 'iteration' ? 'iteration_form' : 'conversation_form')}
+                            onOpenLogin={() => setIsLoginOpen(true)}
+                            onOpenInstructions={() => setIsInstructionsOpen(true)}
+                        />
+                    </main>
+                );
+        }
+    };
+
+    return (
+        <div className="bg-gray-100 min-h-screen font-sans">
+            {renderMainContent()}
+            <footer className="text-center py-4 text-gray-500 text-sm">
+                <p>&copy; {new Date().getFullYear()} Colegio Oficial de Trabajo Social de León. Todos los derechos reservados.</p>
+            </footer>
+            <LoginModal 
+                isOpen={isLoginOpen}
+                onClose={() => setIsLoginOpen(false)}
+                onLogin={handleLogin}
+            />
+            <InstructionsModal
+                isOpen={isInstructionsOpen}
+                onClose={() => setIsInstructionsOpen(false)}
+            />
+        </div>
+    );
 }
+
 
 export default App;
