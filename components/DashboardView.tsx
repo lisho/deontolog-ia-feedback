@@ -29,14 +29,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
             const type = fb.tipo_feedback || 'Sin tipo';
             acc[type] = (acc[type] || 0) + 1;
             return acc;
-        }, {});
+        // Fix: Correctly type the initial value for `reduce` to ensure proper type inference for the result.
+        }, {} as Record<string, number>);
 
         // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
         const feedbackByStatus = feedbackList.reduce((acc: Record<string, number>, fb) => {
             const status = fb.review_status || 'Sin estado';
             acc[status] = (acc[status] || 0) + 1;
             return acc;
-        }, {});
+        // Fix: Correctly type the initial value for `reduce` to ensure proper type inference for the result.
+        }, {} as Record<string, number>);
 
         // Stats for "Valorar Conversación"
         const conversationFeedback = feedbackList.filter(fb => fb.tipo_feedback === 'Valorar Conversación');
@@ -47,7 +49,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                 acc[fb.claridad] = (acc[fb.claridad] || 0) + 1;
             }
             return acc;
-        }, {});
+        // Fix: Correctly type the initial value for `reduce` to ensure proper type inference for the result.
+        }, {} as Record<string, number>);
 
         // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
         const utilityData = conversationFeedback.reduce((acc: Record<string, number>, fb) => {
@@ -55,7 +58,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                 acc[fb.utilidad] = (acc[fb.utilidad] || 0) + 1;
             }
             return acc;
-        }, {});
+        // Fix: Correctly type the initial value for `reduce` to ensure proper type inference for the result.
+        }, {} as Record<string, number>);
 
         const getRatingDistribution = (fieldName: RatingKeys) => {
             // Fix: Explicitly type accumulator in reduce to avoid 'any' type inference.
@@ -65,7 +69,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                     const rating = fb[fieldName] as number;
                     acc[rating] = (acc[rating] || 0) + 1;
                     return acc;
-                }, {});
+                // Fix: Correctly type the initial value for `reduce` to ensure proper type inference for the result.
+                }, {} as Record<number, number>);
             
             return Array.from({ length: 5 }, (_, i) => 5 - i).map(rating => ({
                 rating: `${rating} ★`,

@@ -298,7 +298,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                 
                 {isConversationValuation && (
                     <fieldset className="p-4 border border-yellow-200 rounded-lg bg-yellow-50 transition-all duration-300">
-                        <legend className="text-lg font-semibold text-yellow-700 px-2">D. Evaluación Específica</legend>
+                        <legend className="text-lg font-semibold text-yellow-700 px-2">B. Evaluación Específica</legend>
                         <div className="mt-2">
                              <label className="block text-sm font-medium text-black flex items-center gap-2">
                                 1. Claridad de la Respuesta: ¿Fue fácil de entender?
@@ -340,7 +340,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                 )}
 
                 <fieldset className="p-4 border border-gray-200 rounded-lg">
-                    <legend className="text-lg font-semibold text-gray-800 px-2">E. Comentarios Finales (Opcional)</legend>
+                    <legend className="text-lg font-semibold text-gray-800 px-2">
+                        {formType === 'iteration' ? 'D. Comentarios Finales (Opcional)' : 'C. Comentarios Finales (Opcional)'}
+                    </legend>
                     <label htmlFor="comentarios_finales" className="block text-sm font-medium text-black mt-2">¿Algún comentario adicional sobre la experiencia general?</label>
                     <textarea id="comentarios_finales" name="comentarios_finales" value={formData.comentarios_finales} onChange={handleChange} onBlur={handleBlur} rows={2} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black"></textarea>
                 </fieldset>
