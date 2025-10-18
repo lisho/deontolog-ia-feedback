@@ -102,8 +102,8 @@ export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedback
                             onBulkUpdateStatus={handleBulkUpdateStatus}
                         />
                     )}
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                        <table className="min-w-full bg-white">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white responsive-table">
                             <thead className="bg-gray-100">
                                 <tr>
                                     <th className="py-2 px-4">

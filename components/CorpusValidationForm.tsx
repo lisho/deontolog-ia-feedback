@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { FeedbackData } from '../types.ts';
 import { StarRating } from './StarRating.tsx';
 import { FeedbackConfirmationModal } from './FeedbackConfirmationModal.tsx';
@@ -57,6 +57,11 @@ export const CorpusValidationForm: React.FC<CorpusValidationFormProps> = ({ onSu
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof FeedbackData, string>>>({});
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        nameInputRef.current?.focus();
+    }, []);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -81,16 +86,22 @@ export const CorpusValidationForm: React.FC<CorpusValidationFormProps> = ({ onSu
         }
     }, [errors]);
 
-    const validateForm = () => {
-        const newErrors = runValidation(formData);
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (validateForm()) {
+        const newErrors = runValidation(formData);
+        setErrors(newErrors);
+
+        if (Object.keys(newErrors).length === 0) {
             setIsConfirmModalOpen(true);
+        } else {
+            const firstErrorField = Object.keys(newErrors)[0];
+            if (firstErrorField) {
+                const elementToFocus = e.currentTarget.querySelector<HTMLElement>(`[name="${firstErrorField}"]`);
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
     };
 
@@ -148,7 +159,7 @@ export const CorpusValidationForm: React.FC<CorpusValidationFormProps> = ({ onSu
                     <legend className="text-lg font-semibold text-blue-700 px-2">A. Identificación del Evaluador</legend>
                     <p className="text-sm text-gray-600 mt-2 px-2 mb-4">Información básica para contextualizar su evaluación profesional.</p>
                     <label htmlFor="nombre_evaluador" className="block text-sm font-medium text-black mt-2">Nombre o Contacto (Opcional):</label>
-                    <input type="text" id="nombre_evaluador" name="nombre_evaluador" value={formData.nombre_evaluador} onChange={handleChange} placeholder="Nombre, email o alias" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"/>
+                    <input ref={nameInputRef} type="text" id="nombre_evaluador" name="nombre_evaluador" value={formData.nombre_evaluador} onChange={handleChange} placeholder="Nombre, email o alias" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"/>
                     <p className="text-xs text-gray-500 mb-4">Solo se usará si se requiere contactarle para ampliar la información.</p>
 
                     <label htmlFor="fecha_hora" className="block text-sm font-medium text-black mt-2">Fecha y Hora:</label>
@@ -174,6 +185,7 @@ export const CorpusValidationForm: React.FC<CorpusValidationFormProps> = ({ onSu
                                 <p className="text-xs text-gray-500 mt-1">{description}</p>
                                 <div className="mt-2">
                                     <StarRating
+                                        name={key as string}
                                         value={formData[key] as number}
                                         onChange={(value) => handleRatingChange(key, value)}
                                     />

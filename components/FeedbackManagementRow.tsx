@@ -148,8 +148,8 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
 
     return (
         <>
-            <tr className={`border-b border-gray-200 hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
-                <td className="py-3 px-4" onClick={handleCheckboxClick}>
+            <tr className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                <td className="py-3 px-4 checkbox-cell" onClick={handleCheckboxClick}>
                      <input
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -158,21 +158,21 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                         aria-label={`Seleccionar feedback de ${feedback.escenario_keywords}`}
                     />
                 </td>
-                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{date}</td>
-                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.escenario_keywords || 'N/A'}</td>
-                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.tipo_feedback}</td>
-                <td className="py-3 px-4 text-sm text-center text-amber-500 font-bold cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <td data-label="Fecha" className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{date}</td>
+                <td data-label="Escenario" className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.escenario_keywords || 'N/A'}</td>
+                <td data-label="Tipo" className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.tipo_feedback}</td>
+                <td data-label="Valoración" className="py-3 px-4 text-sm text-amber-500 font-bold cursor-pointer text-right lg:text-center" onClick={() => setIsExpanded(!isExpanded)}>
                     {isCorpusValidation ? (avgCorpusRating ? avgCorpusRating.toFixed(1) : 'N/A') : (feedback.valoracion_deontologica || 'N/A')}
                 </td>
-                <td className="py-3 px-4 text-sm cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <td data-label="Estado" className="py-3 px-4 text-sm cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(reviewStatus)}`}>
                         {reviewStatus}
                     </span>
                 </td>
             </tr>
             {isExpanded && (
-                <tr className={`border-b border-gray-200 ${isSelected ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <td colSpan={6} className="p-4">
+                <tr className={`${isSelected ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    <td colSpan={6} className="p-4 expand-details">
                         <div className="space-y-3">
                             <div>
                                 <h4 className="font-semibold text-gray-800">Detalles del Feedback</h4>

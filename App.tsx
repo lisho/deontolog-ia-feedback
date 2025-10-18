@@ -27,6 +27,8 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
     const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback } = useDatabase();
     const [view, setView] = useState<'results' | 'management' | 'dashboard'>('results');
     const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isFiltersVisible, setIsFiltersVisible] = useState(false);
 
     const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
         setToast({ show: true, message, type });
@@ -123,39 +125,70 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
     return (
         <>
             <header className="bg-white shadow-md">
-                <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-blue-600"> Deontolog-IA - Panel de Administración</h1>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setView('results')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'results' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
-                            Ver Resultados
+                <nav className="container mx-auto px-6 py-3 flex justify-between items-center relative">
+                    <h1 className="text-xl md:text-2xl font-bold text-blue-600"> Deontolog-IA - Administración</h1>
+                     <div className="md:hidden">
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-md text-gray-600 hover:bg-gray-200" aria-label="Abrir menú">
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+                            </svg>
                         </button>
-                        <button onClick={() => setView('management')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'management' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
-                            Gestionar
-                        </button>
-                        <button onClick={() => setView('dashboard')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
-                            Estadísticas
-                        </button>
-                         <button onClick={onLogout} className="px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-100 border border-red-200">
-                            Salir
-                        </button>
+                    </div>
+                    <div className={`
+                        absolute md:static top-full left-0 right-0 z-20
+                        bg-white md:bg-transparent shadow-md md:shadow-none
+                        ${isMenuOpen ? 'block' : 'hidden'} md:flex 
+                    `}>
+                        <div className="flex flex-col md:flex-row md:items-center gap-2 p-4 md:p-0">
+                            <button onClick={() => { setView('results'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'results' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                                Ver Resultados
+                            </button>
+                            <button onClick={() => { setView('management'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'management' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                                Gestionar
+                            </button>
+                            <button onClick={() => { setView('dashboard'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                                Estadísticas
+                            </button>
+                             <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-100 border border-red-200 w-full text-left md:text-center">
+                                Salir
+                            </button>
+                        </div>
                     </div>
                 </nav>
             </header>
             <main className="container mx-auto p-4 md:p-8">
-                <div className="mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg transition-all duration-300 max-w-7xl">
-                    {(view === 'results' || view === 'management') && (
-                        <GlobalSearchBar 
-                            searchTerm={searchTerm} 
-                            onSearchChange={handleSearchChange} 
-                        />
-                    )}
+                <div className="mx-auto bg-white p-4 md:p-8 rounded-xl shadow-lg transition-all duration-300 max-w-7xl">
                     {(view === 'results' || view === 'management' || view === 'dashboard') && (
-                        <FilterControls
-                            filters={filters}
-                            onFilterChange={handleFilterChange}
-                            onResetFilters={handleResetFilters}
-                            feedbackTypes={uniqueFeedbackTypes}
-                        />
+                        <div className="border-b border-gray-200">
+                            <button
+                                onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+                                className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-700 hover:text-blue-600 focus:outline-none py-4"
+                                aria-expanded={isFiltersVisible}
+                                aria-controls="filter-section"
+                            >
+                                <span>Filtros y Búsqueda</span>
+                                <svg
+                                    className={`h-5 w-5 transform transition-transform duration-200 ${isFiltersVisible ? 'rotate-180' : ''}`}
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div id="filter-section" className={`transition-all duration-500 ease-in-out overflow-hidden ${isFiltersVisible ? 'max-h-[500px] pt-4 pb-6' : 'max-h-0'}`}>
+                                {(view === 'results' || view === 'management') && (
+                                    <GlobalSearchBar 
+                                        searchTerm={searchTerm} 
+                                        onSearchChange={handleSearchChange} 
+                                    />
+                                )}
+                                <FilterControls
+                                    filters={filters}
+                                    onFilterChange={handleFilterChange}
+                                    onResetFilters={handleResetFilters}
+                                    feedbackTypes={uniqueFeedbackTypes}
+                                />
+                            </div>
+                        </div>
                     )}
                     {renderView()}
                 </div>

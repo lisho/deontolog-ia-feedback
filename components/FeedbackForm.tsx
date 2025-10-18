@@ -84,6 +84,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        nameInputRef.current?.focus();
+    }, []);
+
+    useEffect(() => {
         const validationErrors = runValidation(formData, formType);
         const newValidFields: Partial<Record<keyof FeedbackData, boolean>> = {};
 
@@ -127,16 +131,12 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
         setFormData(prev => ({ ...prev, [name]: value }));
     }, []);
 
-    const validateForm = () => {
-        const newErrors = runValidation(formData, formType);
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (validateForm()) {
+        const newErrors = runValidation(formData, formType);
+        setErrors(newErrors);
+
+        if (Object.keys(newErrors).length === 0) {
             setIsConfirmModalOpen(true);
         } else {
              const allTouched: Partial<Record<keyof FeedbackData, boolean>> = {
@@ -152,6 +152,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                  allTouched['utilidad'] = true;
              }
             setTouchedFields(allTouched);
+
+            const firstErrorField = Object.keys(newErrors)[0];
+            if (firstErrorField) {
+                const elementToFocus = e.currentTarget.querySelector<HTMLElement>(`[name="${firstErrorField}"]`);
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
     };
 
@@ -337,15 +346,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                         
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">3. Valoración Deontológica (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_deontologica || 0} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
+                            <StarRating name="valoracion_deontologica" value={formData.valoracion_deontologica || 0} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
                         </div>
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">4. Pertinencia de las Respuestas (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_pertinencia || 0} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
+                            <StarRating name="valoracion_pertinencia" value={formData.valoracion_pertinencia || 0} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
                         </div>
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">5. Calidad General de la Interacción (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_calidad_interaccion || 0} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
+                            <StarRating name="valoracion_calidad_interaccion" value={formData.valoracion_calidad_interaccion || 0} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
                         </div>
                     </fieldset>
                 )}

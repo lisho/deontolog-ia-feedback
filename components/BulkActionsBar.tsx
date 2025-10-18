@@ -18,15 +18,15 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({ selectedCount, o
     };
 
     return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-4 flex items-center justify-between shadow-sm sticky top-2 z-10">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm sticky top-2 z-10">
             <div className="flex items-center gap-4">
                 <span className="font-semibold text-blue-800">{selectedCount} {selectedCount > 1 ? 'elementos seleccionados' : 'elemento seleccionado'}</span>
                 <button onClick={onClearSelection} className="text-sm text-blue-600 hover:underline">
                     Limpiar selección
                 </button>
             </div>
-            <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value as ReviewStatus)}

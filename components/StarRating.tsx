@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 interface StarRatingProps {
     value: number;
     onChange: (value: number) => void;
+    name: string;
 }
 
-export const StarRating: React.FC<StarRatingProps> = ({ value, onChange }) => {
+export const StarRating: React.FC<StarRatingProps> = ({ value, onChange, name }) => {
     const [hoverValue, setHoverValue] = useState(0);
 
     return (
@@ -21,7 +22,7 @@ export const StarRating: React.FC<StarRatingProps> = ({ value, onChange }) => {
                 >
                     <input
                         type="radio"
-                        name="valoracion_deontologica"
+                        name={name}
                         value={star}
                         checked={value === star}
                         className="hidden"
