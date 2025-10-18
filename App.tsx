@@ -11,6 +11,7 @@ import { ToastNotification } from './components/ToastNotification.tsx';
 import { WelcomeView } from './components/WelcomeView.tsx';
 import { LoginModal } from './components/LoginModal.tsx';
 import { InstructionsModal } from './components/InstructionsModal.tsx';
+import { CorpusValidationForm } from './components/CorpusValidationForm.tsx';
 
 
 interface ToastState {
@@ -18,6 +19,8 @@ interface ToastState {
     message: string;
     type: 'success' | 'error';
 }
+
+type InstructionsType = 'iteration' | 'conversation' | 'corpus_validation' | 'all';
 
 // Component for the full administrative view
 const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
@@ -169,9 +172,9 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
 };
 
 function App() {
-    const [appState, setAppState] = useState<'welcome' | 'iteration_form' | 'conversation_form' | 'admin'>('welcome');
+    const [appState, setAppState] = useState<'welcome' | 'iteration_form' | 'conversation_form' | 'corpus_validation_form' | 'admin'>('welcome');
     const [isLoginOpen, setIsLoginOpen] = useState(false);
-    const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+    const [instructionsFor, setInstructionsFor] = useState<InstructionsType | null>(null);
     const { addFeedback } = useDatabase();
 
     const handleLogin = (user: string, pass: string): boolean => {
@@ -195,6 +198,10 @@ function App() {
         setAppState('welcome');
     };
 
+    const handleOpenInstructions = (type: InstructionsType) => {
+        setInstructionsFor(type);
+    };
+
     const renderMainContent = () => {
         switch(appState) {
             case 'admin':
@@ -209,6 +216,20 @@ function App() {
                                 onSubmit={handleFormSubmit} 
                                 formType={appState === 'iteration_form' ? 'iteration' : 'conversation'}
                                 onBack={handleGoToWelcome} 
+                                onOpenInstructions={handleOpenInstructions}
+                            />
+                        </div>
+                    </main>
+                );
+            
+            case 'corpus_validation_form':
+                return (
+                    <main className="container mx-auto p-4 md:p-8">
+                        <div className="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                            <CorpusValidationForm
+                                onSubmit={handleFormSubmit}
+                                onBack={handleGoToWelcome}
+                                onOpenInstructions={() => handleOpenInstructions('corpus_validation')}
                             />
                         </div>
                     </main>
@@ -219,9 +240,13 @@ function App() {
                  return (
                      <main className="container mx-auto p-4 md:p-8 flex items-center justify-center min-h-[calc(100vh-100px)]">
                         <WelcomeView 
-                            onNavigate={(formType) => setAppState(formType === 'iteration' ? 'iteration_form' : 'conversation_form')}
+                            onNavigate={(formType) => {
+                                if (formType === 'iteration') setAppState('iteration_form');
+                                else if (formType === 'conversation') setAppState('conversation_form');
+                                else setAppState('corpus_validation_form');
+                            }}
                             onOpenLogin={() => setIsLoginOpen(true)}
-                            onOpenInstructions={() => setIsInstructionsOpen(true)}
+                            onOpenInstructions={() => handleOpenInstructions('all')}
                         />
                     </main>
                 );
@@ -240,8 +265,9 @@ function App() {
                 onLogin={handleLogin}
             />
             <InstructionsModal
-                isOpen={isInstructionsOpen}
-                onClose={() => setIsInstructionsOpen(false)}
+                isOpen={instructionsFor !== null}
+                instructionsFor={instructionsFor}
+                onClose={() => setInstructionsFor(null)}
             />
         </div>
     );

@@ -7,6 +7,7 @@ interface FeedbackFormProps {
     onSubmit: (data: FeedbackData) => Promise<void>;
     formType: 'iteration' | 'conversation';
     onBack: () => void;
+    onOpenInstructions: (type: 'iteration' | 'conversation') => void;
 }
 
 const getInitialState = (formType: 'iteration' | 'conversation'): FeedbackData => {
@@ -46,7 +47,7 @@ const runValidation = (data: FeedbackData, formType: 'iteration' | 'conversation
     if (!data.dispositivo) {
         newErrors.dispositivo = 'Debe seleccionar un dispositivo.';
     }
-    if (!data.escenario_keywords.trim()) {
+    if (!data.escenario_keywords?.trim()) {
         newErrors.escenario_keywords = 'Debe rellenar las palabras clave del escenario.';
     }
     
@@ -54,7 +55,7 @@ const runValidation = (data: FeedbackData, formType: 'iteration' | 'conversation
         if (!data.tipo_feedback) {
             newErrors.tipo_feedback = 'Debe seleccionar un tipo de feedback.';
         }
-        if (!data.descripcion.trim()) {
+        if (!data.descripcion?.trim()) {
             newErrors.descripcion = 'La descripción detallada es obligatoria.';
         }
     }
@@ -72,7 +73,7 @@ const runValidation = (data: FeedbackData, formType: 'iteration' | 'conversation
 };
 
 
-export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, onBack }) => {
+export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, onBack, onOpenInstructions }) => {
     const [formData, setFormData] = useState<FeedbackData>(getInitialState(formType));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -91,7 +92,8 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
         ];
 
         fieldsToValidate.forEach(fieldName => {
-            if (touchedFields[fieldName] && !!formData[fieldName] && !validationErrors[fieldName]) {
+            const value = formData[fieldName as keyof FeedbackData];
+            if (touchedFields[fieldName] && !!value && !validationErrors[fieldName]) {
                 newValidFields[fieldName] = true;
             } else {
                  newValidFields[fieldName] = false;
@@ -137,7 +139,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
         if (validateForm()) {
             setIsConfirmModalOpen(true);
         } else {
-             const allTouched = {
+             const allTouched: Partial<Record<keyof FeedbackData, boolean>> = {
                 dispositivo: true,
                 escenario_keywords: true,
              };
@@ -202,9 +204,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                             }
                         </p>
                     </div>
-                    <button type="button" onClick={onBack} className="text-sm text-blue-600 hover:underline font-medium flex-shrink-0 mt-1">
-                        &larr; Volver al inicio
-                    </button>
+                     <div className="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
+                        <button type="button" onClick={onBack} className="text-sm text-blue-600 hover:underline font-medium">
+                            &larr; Volver al inicio
+                        </button>
+                        <button type="button" onClick={() => onOpenInstructions(formType)} className="text-sm text-gray-500 hover:underline font-medium flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Ver Instrucciones
+                        </button>
+                    </div>
                 </div>
                 <style>{`
                     input[type="datetime-local"].date-input-fix {
@@ -219,7 +227,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                 `}</style>
                 <fieldset className="p-4 border border-blue-200 rounded-lg bg-blue-50">
                     <legend className="text-lg font-semibold text-blue-700 px-2">A. Identificación del Uso</legend>
-
+                    <p className="text-sm text-gray-600 mt-2 px-2 mb-4">Ayúdanos a contextualizar el feedback indicando cuándo y cómo se produjo la interacción.</p>
                     <label htmlFor="nombre_evaluador" className="block text-sm font-medium text-black mt-2">Nombre o Contacto (Opcional):</label>
                     <input ref={nameInputRef} type="text" id="nombre_evaluador" name="nombre_evaluador" value={formData.nombre_evaluador} onChange={handleChange} onBlur={handleBlur} placeholder="Nombre, email o alias" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"/>
                     <p className="text-xs text-gray-500 mb-4">Solo se usará si se requiere contactarle para ampliar la información.</p>
@@ -262,6 +270,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                                 B. Tipo de Feedback (Marque una)
                                 {validFields.tipo_feedback && <CheckmarkIcon />}
                             </legend>
+                            <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Elija la categoría que mejor describa el motivo de su feedback.</p>
                             <div className="mt-2 space-y-2">
                                 {[
                                     { id: 'error', value: 'Error o Fallo', label: '1. Reporte de Error o Fallo (Bug)' },
@@ -280,6 +289,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
 
                         <fieldset className="p-4 border border-gray-200 rounded-lg">
                             <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
+                            <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Proporcione detalles específicos sobre lo ocurrido. Si es posible, incluya la respuesta del chatbot.</p>
                             <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
                             <div className="relative">
                                 <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} onBlur={handleBlur} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
@@ -299,6 +309,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                 {isConversationValuation && (
                     <fieldset className="p-4 border border-yellow-200 rounded-lg bg-yellow-50 transition-all duration-300">
                         <legend className="text-lg font-semibold text-yellow-700 px-2">B. Evaluación Específica</legend>
+                        <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Valore la conversación en su conjunto usando las siguientes escalas.</p>
                         <div className="mt-2">
                              <label className="block text-sm font-medium text-black flex items-center gap-2">
                                 1. Claridad de la Respuesta: ¿Fue fácil de entender?
@@ -326,15 +337,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                         
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">3. Valoración Deontológica (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_deontologica} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
+                            <StarRating value={formData.valoracion_deontologica || 0} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
                         </div>
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">4. Pertinencia de las Respuestas (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_pertinencia} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
+                            <StarRating value={formData.valoracion_pertinencia || 0} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
                         </div>
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-black">5. Calidad General de la Interacción (0 a 5 estrellas):</label>
-                            <StarRating value={formData.valoracion_calidad_interaccion} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
+                            <StarRating value={formData.valoracion_calidad_interaccion || 0} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
                         </div>
                     </fieldset>
                 )}
@@ -343,6 +354,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                     <legend className="text-lg font-semibold text-gray-800 px-2">
                         {formType === 'iteration' ? 'D. Comentarios Finales (Opcional)' : 'C. Comentarios Finales (Opcional)'}
                     </legend>
+                    <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Si tienes alguna reflexión adicional sobre la experiencia, compártela aquí.</p>
                     <label htmlFor="comentarios_finales" className="block text-sm font-medium text-black mt-2">¿Algún comentario adicional sobre la experiencia general?</label>
                     <textarea id="comentarios_finales" name="comentarios_finales" value={formData.comentarios_finales} onChange={handleChange} onBlur={handleBlur} rows={2} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-black"></textarea>
                 </fieldset>

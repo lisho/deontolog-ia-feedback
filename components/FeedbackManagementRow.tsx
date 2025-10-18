@@ -40,6 +40,19 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
     }, [feedback.review_status, feedback.review_result]);
 
     const date = feedback.timestamp ? new Date(feedback.timestamp).toLocaleDateString('es-ES') : 'N/A';
+    
+    const isCorpusValidation = feedback.tipo_feedback === 'Validación de Corpus';
+
+    const avgCorpusRating = isCorpusValidation
+    ? (
+        (feedback.corpus_c1_fuentes_pertinentes || 0) +
+        (feedback.corpus_c2_estructura_exhaustiva || 0) +
+        (feedback.corpus_c3_libre_info_no_autorizada || 0) +
+        (feedback.corpus_c4_detalle_suficiente || 0) +
+        (feedback.corpus_c5_core_fiable_legitimo || 0)
+    ) / 5
+    : null;
+
 
     const handleGenerateSummary = async () => {
         if (!process.env.API_KEY) {
@@ -54,12 +67,21 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                 Eres un analista experto en feedback para un chatbot de deontología en trabajo social.
                 Analiza el siguiente feedback y genera un resumen conciso y bien estructurado para el equipo de revisión.
                 El resumen debe tener 3 partes claras con títulos en negrita:
-                1.  **Problema Principal:** Describe el núcleo del feedback (error, sugerencia, inquietud).
+                1.  **Problema Principal:** Describe el núcleo del feedback (error, sugerencia, inquietud, o los puntos clave de la validación del corpus).
                 2.  **Sentimiento del Usuario:** Infiere si el sentimiento es positivo, negativo o neutral, basándote en el texto y las valoraciones.
-                3.  **Acción Sugerida:** Propón un siguiente paso concreto para el equipo (ej: "investigar bug", "considerar para futura mejora", "archivar como positivo", "escalar a comité de ética").
+                3.  **Acción Sugerida:** Propón un siguiente paso concreto para el equipo (ej: "investigar bug", "considerar para futura mejora", "archivar como positivo", "escalar a comité de ética", "analizar sugerencias para el corpus").
 
                 Aquí están los datos del feedback:
                 - **Tipo de Feedback:** ${feedback.tipo_feedback}
+                ${isCorpusValidation ? `
+                - **C1 - Fuentes Pertinentes:** ${feedback.corpus_c1_fuentes_pertinentes}/5
+                - **C2 - Estructura Exhaustiva:** ${feedback.corpus_c2_estructura_exhaustiva}/5
+                - **C3 - Libre Info No Autorizada:** ${feedback.corpus_c3_libre_info_no_autorizada}/5
+                - **C4 - Detalle Suficiente:** ${feedback.corpus_c4_detalle_suficiente}/5
+                - **C5 - Core Fiable y Legítimo:** ${feedback.corpus_c5_core_fiable_legitimo}/5
+                - **Comentarios sobre el Corpus:** ${feedback.corpus_comentarios || 'No proporcionados'}
+                - **Propuestas de Documentación:** ${feedback.corpus_propuestas || 'No proporcionadas'}
+                ` : `
                 - **Escenario:** ${feedback.escenario_keywords}
                 - **Descripción del Usuario:** ${feedback.descripcion}
                 - **Respuesta del Chatbot (si aplica):** ${feedback.respuesta_chatbot || 'No proporcionada'}
@@ -71,7 +93,7 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                 - **Valoración Pertinencia:** ${feedback.valoracion_pertinencia}/5
                 - **Valoración Calidad Interacción:** ${feedback.valoracion_calidad_interaccion}/5
                 ` : ''}
-
+                `}
                 Genera el resumen ahora.
             `;
     
@@ -137,9 +159,11 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                     />
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{date}</td>
-                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.escenario_keywords}</td>
+                <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.escenario_keywords || 'N/A'}</td>
                 <td className="py-3 px-4 text-sm text-gray-700 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.tipo_feedback}</td>
-                <td className="py-3 px-4 text-sm text-center text-amber-500 font-bold cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{feedback.valoracion_deontologica || 'N/A'}</td>
+                <td className="py-3 px-4 text-sm text-center text-amber-500 font-bold cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                    {isCorpusValidation ? (avgCorpusRating ? avgCorpusRating.toFixed(1) : 'N/A') : (feedback.valoracion_deontologica || 'N/A')}
+                </td>
                 <td className="py-3 px-4 text-sm cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(reviewStatus)}`}>
                         {reviewStatus}
@@ -158,8 +182,22 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                         <strong>Valoraciones:</strong> Deontológica: {feedback.valoracion_deontologica || 'N/A'} ★ | Pertinencia: {feedback.valoracion_pertinencia || 'N/A'} ★ | Calidad: {feedback.valoracion_calidad_interaccion || 'N/A'} ★
                                     </p>
                                 )}
-                                <p className="text-sm text-gray-600"><strong>Descripción:</strong> {feedback.descripcion}</p>
+                                {feedback.descripcion && <p className="text-sm text-gray-600"><strong>Descripción:</strong> {feedback.descripcion}</p>}
                                 {feedback.respuesta_chatbot && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Respuesta IA:</strong> <em>"{feedback.respuesta_chatbot}"</em></p>}
+                                {isCorpusValidation && (
+                                    <div className="mt-2 pt-2 border-t">
+                                        <h5 className="font-semibold text-gray-700">Resultados Validación Corpus:</h5>
+                                        <ul className="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
+                                            {feedback.corpus_c1_fuentes_pertinentes && <li>C1 - Fuentes Pertinentes: <strong>{feedback.corpus_c1_fuentes_pertinentes}/5</strong></li>}
+                                            {feedback.corpus_c2_estructura_exhaustiva && <li>C2 - Estructura Exhaustiva: <strong>{feedback.corpus_c2_estructura_exhaustiva}/5</strong></li>}
+                                            {feedback.corpus_c3_libre_info_no_autorizada && <li>C3 - Libre Info. No Autorizada: <strong>{feedback.corpus_c3_libre_info_no_autorizada}/5</strong></li>}
+                                            {feedback.corpus_c4_detalle_suficiente && <li>C4 - Detalle Suficiente: <strong>{feedback.corpus_c4_detalle_suficiente}/5</strong></li>}
+                                            {feedback.corpus_c5_core_fiable_legitimo && <li>C5 - Core Fiable y Legítimo: <strong>{feedback.corpus_c5_core_fiable_legitimo}/5</strong></li>}
+                                        </ul>
+                                        {feedback.corpus_comentarios && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Comentarios Corpus:</strong> <em>"{feedback.corpus_comentarios}"</em></p>}
+                                        {feedback.corpus_propuestas && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Propuestas Documentación:</strong> <em>"{feedback.corpus_propuestas}"</em></p>}
+                                    </div>
+                                )}
                             </div>
                             <div className="pt-3 border-t">
                                  <h4 className="font-semibold text-gray-800 mb-2">Gestionar Revisión</h4>

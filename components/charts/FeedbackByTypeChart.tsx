@@ -7,20 +7,26 @@ interface ChartData {
 
 interface FeedbackByTypeChartProps {
     data: ChartData[];
+    title?: string;
 }
 
-const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'];
+const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1', '#D946EF'];
 
-export const FeedbackByTypeChart: React.FC<FeedbackByTypeChartProps> = ({ data }) => {
+export const FeedbackByTypeChart: React.FC<FeedbackByTypeChartProps> = ({ data, title = 'Feedback por Tipo' }) => {
     if (!data || data.length === 0) {
-        return <div className="text-center text-gray-500 p-4">No hay datos para mostrar.</div>;
+        return (
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+                <div className="text-center text-gray-500 p-4 h-full flex items-center justify-center">No hay datos para mostrar.</div>
+            </div>
+        );
     }
 
     const maxValue = Math.max(...data.map(item => item.value), 0);
     
     return (
         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 h-full">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Feedback por Tipo</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
             <div className="space-y-3">
                 {data.map((item, index) => (
                     <div key={item.label}>

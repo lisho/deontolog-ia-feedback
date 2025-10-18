@@ -44,9 +44,23 @@ const FeedbackCard: React.FC<{
         setReviewStatus(feedback.review_status);
         setReviewResult(feedback.review_result);
     }, [feedback.review_status, feedback.review_result]);
+    
+    const isCorpusValidation = feedback.tipo_feedback === 'Validación de Corpus';
+    
+    const avgCorpusRating = isCorpusValidation
+    ? Math.round((
+        (feedback.corpus_c1_fuentes_pertinentes || 0) +
+        (feedback.corpus_c2_estructura_exhaustiva || 0) +
+        (feedback.corpus_c3_libre_info_no_autorizada || 0) +
+        (feedback.corpus_c4_detalle_suficiente || 0) +
+        (feedback.corpus_c5_core_fiable_legitimo || 0)
+    ) / 5)
+    : 0;
+    
+    const ratingToShow = isCorpusValidation ? avgCorpusRating : (feedback.valoracion_deontologica || 0);
 
-    const filledStars = '★'.repeat(feedback.valoracion_deontologica || 0);
-    const emptyStars = '☆'.repeat(5 - (feedback.valoracion_deontologica || 0));
+    const filledStars = '★'.repeat(ratingToShow);
+    const emptyStars = '☆'.repeat(5 - ratingToShow);
     const stars = filledStars + emptyStars;
     const date = feedback.timestamp ? new Date(feedback.timestamp).toLocaleDateString('es-ES') : 'Fecha desconocida';
 
@@ -83,7 +97,7 @@ const FeedbackCard: React.FC<{
                 <div>
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="font-semibold text-gray-800 text-sm">{feedback.escenario_keywords}</p>
+                            <p className="font-semibold text-gray-800 text-sm">{isCorpusValidation ? 'Validación de Corpus' : feedback.escenario_keywords}</p>
                             <p className="text-xs text-indigo-600">{feedback.tipo_feedback}</p>
                         </div>
                         <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${getStatusColor(feedback.review_status)}`}>
@@ -92,13 +106,18 @@ const FeedbackCard: React.FC<{
                     </div>
 
                     <div className="flex justify-between items-center mt-3 text-sm">
-                        <span className="text-amber-400 text-lg" title={`${feedback.valoracion_deontologica || 0}/5 estrellas`}>{stars}</span>
+                        <span className="text-amber-400 text-lg" title={`${ratingToShow}/5 estrellas`}>{stars}</span>
                         <span className="text-gray-500 text-xs">{date}</span>
                     </div>
 
                     {feedback.descripcion && (
                         <p className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
                             {feedback.descripcion}
+                        </p>
+                    )}
+                     {isCorpusValidation && feedback.corpus_comentarios && (
+                        <p className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
+                            <strong>Comentarios:</strong> {feedback.corpus_comentarios}
                         </p>
                     )}
                 </div>
