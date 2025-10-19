@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { FeedbackForm } from './components/FeedbackForm.tsx';
 import { FeedbackResults } from './components/FeedbackResults.tsx';
 import { FeedbackManagement } from './components/FeedbackManagement.tsx';
@@ -12,6 +12,7 @@ import { WelcomeView } from './components/WelcomeView.tsx';
 import { LoginModal } from './components/LoginModal.tsx';
 import { InstructionsModal } from './components/InstructionsModal.tsx';
 import { CorpusValidationForm } from './components/CorpusValidationForm.tsx';
+import { ApiKeyModal } from './components/ApiKeyModal.tsx';
 
 
 interface ToastState {
@@ -29,6 +30,22 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
     const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+    const [apiKey, setApiKey] = useState<string>('');
+    const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+
+    useEffect(() => {
+        const storedKey = localStorage.getItem('gemini_api_key');
+        if (storedKey) {
+            setApiKey(storedKey);
+        }
+    }, []);
+
+    const handleSaveApiKey = (key: string) => {
+        setApiKey(key);
+        localStorage.setItem('gemini_api_key', key);
+        showToast('API Key guardada correctamente.');
+        setIsApiKeyModalOpen(false);
+    };
 
     const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
         setToast({ show: true, message, type });
@@ -113,10 +130,11 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
                     onDelete={deleteFeedback} 
                     onBulkUpdateStatus={bulkUpdateFeedbackStatus}
                     onBulkDelete={bulkDeleteFeedback}
-                    showToast={showToast} 
+                    showToast={showToast}
+                    apiKey={apiKey}
                 />;
             case 'dashboard':
-                return <DashboardView feedbackList={filteredFeedback} />;
+                return <DashboardView feedbackList={filteredFeedback} apiKey={apiKey} />;
             default:
                 return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} showToast={showToast} />;
         }
@@ -148,6 +166,11 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
                             </button>
                             <button onClick={() => { setView('dashboard'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                                 Estadísticas
+                            </button>
+                             <button onClick={() => setIsApiKeyModalOpen(true)} className="p-2 rounded-full text-gray-600 hover:bg-gray-200" aria-label="Configurar API Key">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                </svg>
                             </button>
                              <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-100 border border-red-200 w-full text-left md:text-center">
                                 Salir
@@ -200,6 +223,12 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
                     onClose={() => setToast({ ...toast, show: false })}
                 />
             )}
+             <ApiKeyModal
+                isOpen={isApiKeyModalOpen}
+                onClose={() => setIsApiKeyModalOpen(false)}
+                onSave={handleSaveApiKey}
+                currentApiKey={apiKey}
+            />
         </>
     );
 };

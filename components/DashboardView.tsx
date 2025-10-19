@@ -10,6 +10,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 interface DashboardViewProps {
     feedbackList: FeedbackData[];
+    apiKey: string;
 }
 
 type RatingKeys = 'valoracion_deontologica' | 'valoracion_pertinencia' | 'valoracion_calidad_interaccion';
@@ -23,7 +24,7 @@ interface AiSummary {
     rawText: string;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiKey }) => {
     const [activeTab, setActiveTab] = useState<Tab>('general');
     const [aiSummaries, setAiSummaries] = useState<{ general: AiSummary | null; conversation: AiSummary | null; corpus: AiSummary | null }>({ general: null, conversation: null, corpus: null });
     const [isGeneratingSummary, setIsGeneratingSummary] = useState<Tab | null>(null);
@@ -115,6 +116,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                 clarity: Object.entries(clarityData).map(([label, value]: [string, number]) => ({ label, value })),
                 utility: Object.entries(utilityData).map(([label, value]: [string, number]) => ({ label, value })),
                 deontologicalRatingDist: getRatingDistribution('valoracion_deontologica'),
+                // FIX: The argument was incorrect and did not match the 'RatingKeys' type.
                 pertinenceRatingDist: getRatingDistribution('valoracion_pertinencia'),
                 interactionQualityRatingDist: getRatingDistribution('valoracion_calidad_interaccion'),
             },
@@ -133,15 +135,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
     }, [feedbackList]);
 
     const handleGenerateSummary = async (tab: Tab) => {
-        if (!process.env.API_KEY) {
-            alert('API Key no configurada.');
+        if (!apiKey) {
+            alert('Por favor, configure su API Key en los ajustes para usar esta función.');
             return;
         }
         setIsGeneratingSummary(tab);
         setAiSummaries(prev => ({ ...prev, [tab]: null }));
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey });
 
             let textData = '';
             let promptIntro = '';
@@ -425,8 +427,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList }) =>
                 <div>
                     <button
                         onClick={() => handleGenerateSummary(tab)}
-                        disabled={isGeneratingSummary === tab}
-                        className="w-full px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:bg-violet-400 disabled:cursor-wait flex items-center justify-center gap-2"
+                        disabled={isGeneratingSummary === tab || !apiKey}
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:bg-violet-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        title={!apiKey ? 'Configure la API Key en los ajustes para usar esta función' : 'Generar resumen cualitativo'}
                     >
                         {isGeneratingSummary === tab ? (
                              <>

@@ -10,6 +10,7 @@ interface FeedbackManagementRowProps {
     isSelected: boolean;
     onToggleSelect: (id: string) => void;
     showToast: (message: string, type?: 'success' | 'error') => void;
+    apiKey: string;
 }
 
 const getStatusColor = (status: ReviewStatus) => {
@@ -25,7 +26,7 @@ const getStatusColor = (status: ReviewStatus) => {
     }
 };
 
-export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete, isSelected, onToggleSelect, showToast }) => {
+export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ feedback, onUpdateReview, onDelete, isSelected, onToggleSelect, showToast, apiKey }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(feedback.review_status);
     const [reviewResult, setReviewResult] = useState(feedback.review_result);
@@ -55,13 +56,13 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
 
 
     const handleGenerateSummary = async () => {
-        if (!process.env.API_KEY) {
-            showToast('API Key no configurada.', 'error');
+        if (!apiKey) {
+            showToast('Por favor, configure su API Key en los ajustes.', 'error');
             return;
         }
         setIsGeneratingSummary(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey });
             
             const prompt = `
                 Eres un analista experto en feedback para un chatbot de deontología en trabajo social.
@@ -215,14 +216,15 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                             <option value="Revisado">Revisado</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div className="relative">
                                         <div className="flex justify-between items-center mb-1">
                                             <label htmlFor={`review-result-${feedback.id}`} className="block text-sm font-medium text-black">Resultado / Notas</label>
                                             <button 
                                                 type="button" 
                                                 onClick={handleGenerateSummary} 
-                                                disabled={isGeneratingSummary}
-                                                className="px-3 py-1 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-md disabled:bg-violet-400 disabled:cursor-wait flex items-center gap-1"
+                                                disabled={isGeneratingSummary || !apiKey}
+                                                className="px-3 py-1 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-md disabled:bg-violet-400 disabled:cursor-not-allowed flex items-center gap-1"
+                                                title={!apiKey ? 'Configure la API Key en los ajustes para usar esta función' : 'Generar resumen con IA'}
                                             >
                                                 {isGeneratingSummary ? (
                                                     <>

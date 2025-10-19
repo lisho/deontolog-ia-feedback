@@ -14,11 +14,12 @@ interface FeedbackManagementProps {
     onBulkUpdateStatus: (ids: string[], status: ReviewStatus) => Promise<void>;
     onBulkDelete: (ids: string[]) => Promise<void>;
     showToast: (message: string, type?: 'success' | 'error') => void;
+    apiKey: string;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete, onBulkUpdateStatus, onBulkDelete, showToast }) => {
+export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedbackList, isLoading, onUpdateReview, onDelete, onBulkUpdateStatus, onBulkDelete, showToast, apiKey }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isConfirmingBulkDelete, setIsConfirmingBulkDelete] = useState(false);
@@ -137,6 +138,7 @@ export const FeedbackManagement: React.FC<FeedbackManagementProps> = ({ feedback
                                         isSelected={!!feedback.id && selectedIds.includes(feedback.id)}
                                         onToggleSelect={handleToggleSelect}
                                         showToast={showToast}
+                                        apiKey={apiKey}
                                     />
                                 ))}
                             </tbody>
