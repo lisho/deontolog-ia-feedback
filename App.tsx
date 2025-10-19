@@ -233,14 +233,39 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
     );
 };
 
+const ADMIN_SESSION_KEY = 'adminSession';
+const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
 function App() {
     const [appState, setAppState] = useState<'welcome' | 'iteration_form' | 'conversation_form' | 'corpus_validation_form' | 'admin'>('welcome');
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [instructionsFor, setInstructionsFor] = useState<InstructionsType | null>(null);
     const { addFeedback } = useDatabase();
 
+    // Check for an active session on initial load
+    useEffect(() => {
+        const sessionData = localStorage.getItem(ADMIN_SESSION_KEY);
+        if (sessionData) {
+            try {
+                const session = JSON.parse(sessionData);
+                if (session.expiresAt && new Date().getTime() < session.expiresAt) {
+                    setAppState('admin'); // Restore session
+                } else {
+                    localStorage.removeItem(ADMIN_SESSION_KEY); // Clean up expired session
+                }
+            } catch (error) {
+                console.error("Failed to parse session data:", error);
+                localStorage.removeItem(ADMIN_SESSION_KEY);
+            }
+        }
+    }, []); // Empty dependency array ensures this runs only once on mount
+
     const handleLogin = (user: string, pass: string): boolean => {
         if (user === 'admin' && pass === 'admin') {
+            const expirationTime = new Date().getTime() + SESSION_DURATION_MS;
+            const session = { expiresAt: expirationTime };
+            localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
+            
             setIsLoginOpen(false);
             setAppState('admin');
             return true;
@@ -249,6 +274,7 @@ function App() {
     };
     
     const handleLogout = () => {
+        localStorage.removeItem(ADMIN_SESSION_KEY);
         setAppState('welcome');
     };
 
