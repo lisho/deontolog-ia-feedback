@@ -24,6 +24,12 @@ const getInitialState = (): FeedbackData => {
         corpus_c3_libre_info_no_autorizada: 0,
         corpus_c4_detalle_suficiente: 0,
         corpus_c5_core_fiable_legitimo: 0,
+        corpus_c6_cobertura_tematica: 0,
+        corpus_c7_actualizacion_vigencia: 0,
+        corpus_c8_precision_rigor: 0,
+        corpus_c9_representatividad_diversidad: 0,
+        corpus_c10_redaccion_claridad: 0,
+        corpus_c11_referenciacion_trazabilidad: 0,
         corpus_comentarios: '',
         corpus_propuestas: '',
         review_status: 'Pendiente',
@@ -39,6 +45,12 @@ const runValidation = (data: FeedbackData): Partial<Record<keyof FeedbackData, s
     if (!data.corpus_c3_libre_info_no_autorizada) newErrors.corpus_c3_libre_info_no_autorizada = 'La valoración es requerida.';
     if (!data.corpus_c4_detalle_suficiente) newErrors.corpus_c4_detalle_suficiente = 'La valoración es requerida.';
     if (!data.corpus_c5_core_fiable_legitimo) newErrors.corpus_c5_core_fiable_legitimo = 'La valoración es requerida.';
+    if (!data.corpus_c6_cobertura_tematica) newErrors.corpus_c6_cobertura_tematica = 'La valoración es requerida.';
+    if (!data.corpus_c7_actualizacion_vigencia) newErrors.corpus_c7_actualizacion_vigencia = 'La valoración es requerida.';
+    if (!data.corpus_c8_precision_rigor) newErrors.corpus_c8_precision_rigor = 'La valoración es requerida.';
+    if (!data.corpus_c9_representatividad_diversidad) newErrors.corpus_c9_representatividad_diversidad = 'La valoración es requerida.';
+    if (!data.corpus_c10_redaccion_claridad) newErrors.corpus_c10_redaccion_claridad = 'La valoración es requerida.';
+    if (!data.corpus_c11_referenciacion_trazabilidad) newErrors.corpus_c11_referenciacion_trazabilidad = 'La valoración es requerida.';
     return newErrors;
 };
 
@@ -49,6 +61,12 @@ const questions: { key: keyof FeedbackData, text: string, description: string }[
     { key: 'corpus_c3_libre_info_no_autorizada', text: 'C3. La base de conocimiento está libre de información no autorizada o no validada por expertos del sector.', description: 'Verifique que el corpus se basa exclusivamente en la documentación aprobada, sin incluir opiniones o fuentes externas no validadas.' },
     { key: 'corpus_c4_detalle_suficiente', text: 'C4. El corpus ético es suficientemente detallado para facilitar la resolución de dilemas éticos complejos.', description: 'Juzgue si la profundidad del contenido es adecuada para que la IA pueda ofrecer respuestas matizadas y bien fundamentadas.' },
     { key: 'corpus_c5_core_fiable_legitimo', text: 'C5. Considero que el "core ético validado" sobre el que se alimenta la IA es formalmente fiable y legítimo.', description: 'Valore su confianza general en la base documental como pilar para el comportamiento ético de la IA.' },
+    { key: 'corpus_c6_cobertura_tematica', text: 'C6. Cobertura temática: ¿Se cubren suficientemente todos los aspectos relevantes de la materia?', description: 'Evalúe si el corpus abarca la amplitud de temas necesarios para una comprensión completa del campo deontológico.' },
+    { key: 'corpus_c7_actualizacion_vigencia', text: 'C7. Actualización y vigencia: ¿Los textos incorporan las normativas, conceptos y datos más actuales?', description: 'Considere si la base de conocimiento refleja el estado actual de la legislación, la investigación y la práctica profesional.' },
+    { key: 'corpus_c8_precision_rigor', text: 'C8. Precisión y rigor: ¿La información es fiable y libre de errores conceptuales?', description: 'Verifique la exactitud de los datos, definiciones y principios éticos presentados en el corpus.' },
+    { key: 'corpus_c9_representatividad_diversidad', text: 'C9. Representatividad y diversidad: ¿El corpus incluye diferentes perspectivas, estilos y tipos de contenido relevante?', description: 'Juzgue si se incluyen diversas voces y enfoques que enriquecen la base de conocimiento y evitan sesgos.' },
+    { key: 'corpus_c10_redaccion_claridad', text: 'C10. Redacción y claridad: ¿Son textos comprensibles, bien estructurados y preparados para ser utilizados en IA?', description: 'Evalúe la calidad de la escritura, la coherencia y la organización de la información para un procesamiento efectivo por parte de la IA.' },
+    { key: 'corpus_c11_referenciacion_trazabilidad', text: 'C11. Referenciación y trazabilidad: ¿Se indican las fuentes originales en el corpus para poder verificar la legitimidad y evitar plagio?', description: 'Compruebe si las fuentes están debidamente citadas, permitiendo la verificación y el seguimiento de la información original.' },
 ];
 
 export const CorpusValidationForm: React.FC<CorpusValidationFormProps> = ({ onSubmit, onBack, onOpenInstructions }) => {

@@ -52,8 +52,14 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
         (feedback.corpus_c2_estructura_exhaustiva || 0) +
         (feedback.corpus_c3_libre_info_no_autorizada || 0) +
         (feedback.corpus_c4_detalle_suficiente || 0) +
-        (feedback.corpus_c5_core_fiable_legitimo || 0)
-    ) / 5
+        (feedback.corpus_c5_core_fiable_legitimo || 0) +
+        (feedback.corpus_c6_cobertura_tematica || 0) +
+        (feedback.corpus_c7_actualizacion_vigencia || 0) +
+        (feedback.corpus_c8_precision_rigor || 0) +
+        (feedback.corpus_c9_representatividad_diversidad || 0) +
+        (feedback.corpus_c10_redaccion_claridad || 0) +
+        (feedback.corpus_c11_referenciacion_trazabilidad || 0)
+    ) / 11
     : null;
 
 
@@ -82,6 +88,12 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                 - **C3 - Libre Info No Autorizada:** ${feedback.corpus_c3_libre_info_no_autorizada}/5
                 - **C4 - Detalle Suficiente:** ${feedback.corpus_c4_detalle_suficiente}/5
                 - **C5 - Core Fiable y Legítimo:** ${feedback.corpus_c5_core_fiable_legitimo}/5
+                - **C6 - Cobertura Temática:** ${feedback.corpus_c6_cobertura_tematica}/5
+                - **C7 - Actualización y Vigencia:** ${feedback.corpus_c7_actualizacion_vigencia}/5
+                - **C8 - Precisión y Rigor:** ${feedback.corpus_c8_precision_rigor}/5
+                - **C9 - Representatividad y Diversidad:** ${feedback.corpus_c9_representatividad_diversidad}/5
+                - **C10 - Redacción y Claridad:** ${feedback.corpus_c10_redaccion_claridad}/5
+                - **C11 - Referenciación y Trazabilidad:** ${feedback.corpus_c11_referenciacion_trazabilidad}/5
                 - **Comentarios sobre el Corpus:** ${feedback.corpus_comentarios || 'No proporcionados'}
                 - **Propuestas de Documentación:** ${feedback.corpus_propuestas || 'No proporcionadas'}
                 ` : `
@@ -95,6 +107,12 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                 - **Valoración Deontológica:** ${feedback.valoracion_deontologica}/5
                 - **Valoración Pertinencia:** ${feedback.valoracion_pertinencia}/5
                 - **Valoración Calidad Interacción:** ${feedback.valoracion_calidad_interaccion}/5
+                - **Coherencia Conversación:** ${feedback.coherencia_interacciones}/5
+                - **Facilidad Avance:** ${feedback.facilidad_avance_resolucion}/5
+                - **Número Interacciones:** ${feedback.numero_interacciones > 0 ? feedback.numero_interacciones : 'No proporcionado'}
+                - **Aplicabilidad Experta:** ${feedback.utilidad_experto_aplicabilidad || 'No proporcionado'}
+                - **Justificación Experta:** ${feedback.utilidad_experto_justificacion || 'No proporcionada'}
+                - **Impacto en Decisión:** ${feedback.impacto_resolucion_dilemas}/5
                 ` : ''}
                 `}
                 Genera el resumen ahora.
@@ -183,12 +201,23 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                 <h4 className="font-semibold text-gray-800">Detalles del Feedback</h4>
                                 <p className="text-sm text-gray-600 mt-1"><strong>Contacto:</strong> {feedback.nombre_evaluador || 'Anónimo'}</p>
                                 {feedback.tipo_feedback === 'Valorar Conversación' && (
-                                     <p className="text-sm text-gray-600 mt-1">
-                                        <strong>Valoraciones:</strong> Deontológica: {feedback.valoracion_deontologica || 'N/A'} ★ | Pertinencia: {feedback.valoracion_pertinencia || 'N/A'} ★ | Calidad: {feedback.valoracion_calidad_interaccion || 'N/A'} ★
-                                    </p>
+                                     <div className="text-sm text-gray-600 mt-1 space-y-1">
+                                        <p>
+                                            <strong>Valoraciones:</strong> Deontológica: {feedback.valoracion_deontologica || 'N/A'} ★ | Pertinencia: {feedback.valoracion_pertinencia || 'N/A'} ★ | Calidad: {feedback.valoracion_calidad_interaccion || 'N/A'} ★ | Impacto: {feedback.impacto_resolucion_dilemas || 'N/A'} ★
+                                        </p>
+                                        <p>
+                                            <strong>Más Valoraciones:</strong> Coherencia: {feedback.coherencia_interacciones || 'N/A'} ★ | Facilidad Avance: {feedback.facilidad_avance_resolucion || 'N/A'} ★ | Nº Interacciones: {feedback.numero_interacciones > 0 ? feedback.numero_interacciones : 'N/A'}
+                                        </p>
+                                     </div>
                                 )}
                                 {feedback.descripcion && <p className="text-sm text-gray-600"><strong>Descripción:</strong> {feedback.descripcion}</p>}
                                 {feedback.respuesta_chatbot && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Respuesta IA:</strong> <em>"{feedback.respuesta_chatbot}"</em></p>}
+                                {feedback.utilidad_experto_aplicabilidad && (
+                                    <div className="text-sm text-gray-600 mt-2 p-2 bg-indigo-50 rounded border border-indigo-100">
+                                        <p><strong>Feedback Experto:</strong> {feedback.utilidad_experto_aplicabilidad}</p>
+                                        {feedback.utilidad_experto_justificacion && <p className="mt-1"><em>"{feedback.utilidad_experto_justificacion}"</em></p>}
+                                    </div>
+                                )}
                                 {isCorpusValidation && (
                                     <div className="mt-2 pt-2 border-t">
                                         <h5 className="font-semibold text-gray-700">Resultados Validación Corpus:</h5>
@@ -198,6 +227,12 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                             {feedback.corpus_c3_libre_info_no_autorizada && <li>C3 - Libre Info. No Autorizada: <strong>{feedback.corpus_c3_libre_info_no_autorizada}/5</strong></li>}
                                             {feedback.corpus_c4_detalle_suficiente && <li>C4 - Detalle Suficiente: <strong>{feedback.corpus_c4_detalle_suficiente}/5</strong></li>}
                                             {feedback.corpus_c5_core_fiable_legitimo && <li>C5 - Core Fiable y Legítimo: <strong>{feedback.corpus_c5_core_fiable_legitimo}/5</strong></li>}
+                                            {feedback.corpus_c6_cobertura_tematica && <li>C6 - Cobertura Temática: <strong>{feedback.corpus_c6_cobertura_tematica}/5</strong></li>}
+                                            {feedback.corpus_c7_actualizacion_vigencia && <li>C7 - Actualización y Vigencia: <strong>{feedback.corpus_c7_actualizacion_vigencia}/5</strong></li>}
+                                            {feedback.corpus_c8_precision_rigor && <li>C8 - Precisión y Rigor: <strong>{feedback.corpus_c8_precision_rigor}/5</strong></li>}
+                                            {feedback.corpus_c9_representatividad_diversidad && <li>C9 - Representatividad y Diversidad: <strong>{feedback.corpus_c9_representatividad_diversidad}/5</strong></li>}
+                                            {feedback.corpus_c10_redaccion_claridad && <li>C10 - Redacción y Claridad: <strong>{feedback.corpus_c10_redaccion_claridad}/5</strong></li>}
+                                            {feedback.corpus_c11_referenciacion_trazabilidad && <li>C11 - Referenciación y Trazabilidad: <strong>{feedback.corpus_c11_referenciacion_trazabilidad}/5</strong></li>}
                                         </ul>
                                         {feedback.corpus_comentarios && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Comentarios Corpus:</strong> <em>"{feedback.corpus_comentarios}"</em></p>}
                                         {feedback.corpus_propuestas && <p className="text-sm text-gray-600 mt-2 p-2 bg-gray-100 rounded"><strong>Propuestas Documentación:</strong> <em>"{feedback.corpus_propuestas}"</em></p>}
@@ -233,7 +268,7 @@ export const FeedbackManagementRow: React.FC<FeedbackManagementRowProps> = ({ fe
                                             >
                                                 {isGeneratingSummary ? (
                                                     <>
-                                                        <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                         </svg>

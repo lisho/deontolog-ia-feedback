@@ -9,7 +9,7 @@ interface FeedbackConfirmationModalProps {
 }
 
 const DataRow: React.FC<{ label: string; value: string | number | undefined | null }> = ({ label, value }) => {
-    if (value === null || value === undefined || value === '') return null;
+    if (value === null || value === undefined || value === '' || value === 0) return null;
     return (
         <div className="py-2 sm:grid sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-gray-500">{label}</dt>
@@ -46,19 +46,31 @@ export const FeedbackConfirmationModal: React.FC<FeedbackConfirmationModalProps>
                             <>
                                 <DataRow label="Claridad" value={feedbackData.claridad} />
                                 <DataRow label="Utilidad" value={feedbackData.utilidad} />
-                                <DataRow label="Valoración Deontológica" value={(feedbackData.valoracion_deontologica || 0) > 0 ? `${feedbackData.valoracion_deontologica} ★` : null} />
-                                <DataRow label="Pertinencia Respuestas" value={(feedbackData.valoracion_pertinencia || 0) > 0 ? `${feedbackData.valoracion_pertinencia} ★` : null} />
-                                <DataRow label="Calidad Interacción" value={(feedbackData.valoracion_calidad_interaccion || 0) > 0 ? `${feedbackData.valoracion_calidad_interaccion} ★` : null} />
+                                <DataRow label="Coherencia Interacciones" value={`${feedbackData.coherencia_interacciones} ★`} />
+                                <DataRow label="Facilidad de Avance" value={`${feedbackData.facilidad_avance_resolucion} ★`} />
+                                <DataRow label="Nº de Interacciones" value={feedbackData.numero_interacciones} />
+                                <DataRow label="Valoración Deontológica" value={`${feedbackData.valoracion_deontologica} ★`} />
+                                <DataRow label="Pertinencia Respuestas" value={`${feedbackData.valoracion_pertinencia} ★`} />
+                                <DataRow label="Calidad Interacción" value={`${feedbackData.valoracion_calidad_interaccion} ★`} />
+                                <DataRow label="Aplicabilidad Experta" value={feedbackData.utilidad_experto_aplicabilidad} />
+                                <DataRow label="Justificación Experta" value={feedbackData.utilidad_experto_justificacion} />
+                                <DataRow label="Impacto en Decisión" value={`${feedbackData.impacto_resolucion_dilemas} ★`} />
                             </>
                         )}
 
                         {isCorpusValidation && (
                              <>
-                                <DataRow label="C1: Pertinencia Fuentes" value={(feedbackData.corpus_c1_fuentes_pertinentes || 0) > 0 ? `${feedbackData.corpus_c1_fuentes_pertinentes}/5` : null} />
-                                <DataRow label="C2: Estructura Exhaustiva" value={(feedbackData.corpus_c2_estructura_exhaustiva || 0) > 0 ? `${feedbackData.corpus_c2_estructura_exhaustiva}/5` : null} />
-                                <DataRow label="C3: Libre Info. No Autorizada" value={(feedbackData.corpus_c3_libre_info_no_autorizada || 0) > 0 ? `${feedbackData.corpus_c3_libre_info_no_autorizada}/5` : null} />
-                                <DataRow label="C4: Detalle Suficiente" value={(feedbackData.corpus_c4_detalle_suficiente || 0) > 0 ? `${feedbackData.corpus_c4_detalle_suficiente}/5` : null} />
-                                <DataRow label="C5: Core Fiable y Legítimo" value={(feedbackData.corpus_c5_core_fiable_legitimo || 0) > 0 ? `${feedbackData.corpus_c5_core_fiable_legitimo}/5` : null} />
+                                <DataRow label="C1: Pertinencia Fuentes" value={`${feedbackData.corpus_c1_fuentes_pertinentes}/5`} />
+                                <DataRow label="C2: Estructura Exhaustiva" value={`${feedbackData.corpus_c2_estructura_exhaustiva}/5`} />
+                                <DataRow label="C3: Libre Info. No Autorizada" value={`${feedbackData.corpus_c3_libre_info_no_autorizada}/5`} />
+                                <DataRow label="C4: Detalle Suficiente" value={`${feedbackData.corpus_c4_detalle_suficiente}/5`} />
+                                <DataRow label="C5: Core Fiable y Legítimo" value={`${feedbackData.corpus_c5_core_fiable_legitimo}/5`} />
+                                <DataRow label="C6: Cobertura Temática" value={`${feedbackData.corpus_c6_cobertura_tematica}/5`} />
+                                <DataRow label="C7: Actualización y Vigencia" value={`${feedbackData.corpus_c7_actualizacion_vigencia}/5`} />
+                                <DataRow label="C8: Precisión y Rigor" value={`${feedbackData.corpus_c8_precision_rigor}/5`} />
+                                <DataRow label="C9: Representatividad y Diversidad" value={`${feedbackData.corpus_c9_representatividad_diversidad}/5`} />
+                                <DataRow label="C10: Redacción y Claridad" value={`${feedbackData.corpus_c10_redaccion_claridad}/5`} />
+                                <DataRow label="C11: Referenciación y Trazabilidad" value={`${feedbackData.corpus_c11_referenciacion_trazabilidad}/5`} />
                                 <DataRow label="Comentarios sobre Corpus" value={feedbackData.corpus_comentarios} />
                                 <DataRow label="Propuestas Documentación" value={feedbackData.corpus_propuestas} />
                             </>

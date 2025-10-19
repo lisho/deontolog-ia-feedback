@@ -30,9 +30,10 @@ const ConversationInstructions = () => (
             Seleccione esta opción después de haber mantenido una conversación más extensa con el chatbot para evaluar la interacción en su conjunto. Esta opción le permitirá valorar:
         </p>
          <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-            <li>La <strong>claridad general</strong> y la facilidad para entender las respuestas.</li>
-            <li>La <strong>utilidad práctica</strong> de la conversación para resolver su dilema.</li>
-            <li>Una <strong>valoración global</strong> (de 1 a 5 estrellas) de la calidad deontológica, la pertinencia y la interacción general.</li>
+            <li><strong>Calidad de la Respuesta:</strong> Evalúe la claridad, utilidad práctica y alineación con el código deontológico.</li>
+            <li><strong>Fluidez de la Conversación:</strong> Valore la coherencia de las interacciones, la facilidad para guiar al bot y el número de mensajes necesarios para resolver la consulta.</li>
+            <li><strong>Visión Experta:</strong> Aporte su visión sobre la aplicabilidad real de las respuestas y su impacto potencial en la toma de decisiones profesionales.</li>
+            <li><strong>Calidad General:</strong> Una valoración global sobre la experiencia, pertinencia y calidad de la interacción.</li>
         </ul>
    </div>
 );
@@ -44,10 +45,12 @@ const CorpusValidationInstructions = () => (
             Este cuestionario está diseñado para que expertos evalúen la calidad y adecuación de la base de conocimiento fundamental del chatbot. Se enfoca en:
         </p>
          <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-            <li>La <strong>pertinencia de las fuentes</strong> utilizadas para construir el corpus.</li>
-            <li>Si la <strong>estructura del conocimiento</strong> es completa y exhaustiva.</li>
-            <li>La <strong>fiabilidad y legitimidad</strong> del "núcleo ético" que guía al chatbot.</li>
-            <li>El <strong>nivel de detalle</strong> para abordar dilemas complejos.</li>
+            <li><strong>Fuentes y Trazabilidad:</strong> La pertinencia de las fuentes y si están bien referenciadas para su verificación.</li>
+            <li><strong>Contenido y Precisión:</strong> Si la información es fiable, actual, precisa y libre de errores conceptuales.</li>
+            <li><strong>Estructura y Cobertura:</strong> Si se cubren todos los temas relevantes con suficiente detalle y una estructura exhaustiva.</li>
+            <li><strong>Diversidad y Representatividad:</strong> Si el corpus incluye diferentes perspectivas y estilos relevantes.</li>
+            <li><strong>Claridad y Preparación para IA:</strong> Si los textos son comprensibles y están bien preparados para ser usados por la IA.</li>
+            <li><strong>Fiabilidad General:</strong> Su confianza en el "core ético" como pilar para el comportamiento de la IA.</li>
         </ul>
    </div>
 );
@@ -74,11 +77,11 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
             case 'all':
             default:
                 return (
-                    <>
+                    <div className="space-y-6">
                         <IterationInstructions />
                         <ConversationInstructions />
                         <CorpusValidationInstructions />
-                    </>
+                    </div>
                 );
         }
     };

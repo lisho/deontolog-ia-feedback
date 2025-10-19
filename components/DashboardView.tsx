@@ -275,7 +275,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                     { label: 'Revisado', value: statusCounts['Revisado'] || 0, color: '#10B981' },
                 ];
                 const typeCounts = activeFeedbackList.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
-                const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value }));
+                const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value: Number(value) }));
                 infographicHtml = `
                     <div class="card mb-6">${generateKpiCardsHtml(kpis)}</div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -290,7 +290,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 data = iterationFeedbacks;
                 headers = ['Fecha', 'Tipo', 'Escenario', 'Descripción'];
                 const iterationCounts = data.reduce((acc, f) => { acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
-                const iterationChartData = Object.entries(iterationCounts).map(([label, value]) => ({label, value}));
+                const iterationChartData = Object.entries(iterationCounts).map(([label, value]) => ({label, value: Number(value)}));
                 infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Desglose por Tipo de Iteración", iterationChartData, '#3B82F6')}</div>`;
                 tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.tipo_feedback}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.descripcion || 'N/A'}</td></tr>`).join('')}</tbody>`;
@@ -298,24 +298,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
             case 'conversation':
                  title = "Informe de Análisis de Conversaciones";
                  data = conversationFeedbacks;
-                 headers = ['Fecha', 'Escenario', 'Deontología ★', 'Pertinencia ★', 'Calidad ★'];
+                 headers = ['Fecha', 'Escenario', 'Deontología ★', 'Pertinencia ★', 'Calidad ★', 'Impacto ★', 'Coherencia ★', 'Facilidad ★', 'Nº Interacciones', 'Aplicabilidad', 'Justificación'];
                  const ratingDistribution = (field: keyof FeedbackData) => {
                      const counts: Record<string, number> = { '1 ★': 0, '2 ★': 0, '3 ★': 0, '4 ★': 0, '5 ★': 0 };
                      data.forEach(f => { const rating = f[field] as number; if (rating >= 1 && rating <= 5) counts[`${rating} ★`] = (counts[`${rating} ★`] || 0) + 1; });
-                     return Object.entries(counts).map(([label, value]) => ({ label, value }));
+                     return Object.entries(counts).map(([label, value]) => ({ label, value: Number(value) }));
                  };
-                 infographicHtml = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                const aplicabilidadCounts = data.reduce((acc, f) => { if (f.utilidad_experto_aplicabilidad) acc[f.utilidad_experto_aplicabilidad] = (acc[f.utilidad_experto_aplicabilidad] || 0) + 1; return acc; }, {} as Record<string, number>);
+                const aplicabilidadChartData = Object.entries(aplicabilidadCounts).map(([label, value]) => ({label, value: Number(value)}));
+
+                 infographicHtml = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     ${generateHorizontalBarChartHtml("Val. Deontológica", ratingDistribution('valoracion_deontologica'), '#8B5CF6')}
                     ${generateHorizontalBarChartHtml("Val. Pertinencia", ratingDistribution('valoracion_pertinencia'), '#EC4899')}
                     ${generateHorizontalBarChartHtml("Val. Calidad", ratingDistribution('valoracion_calidad_interaccion'), '#F59E0B')}
+                    ${generateHorizontalBarChartHtml("Val. Impacto Decisión", ratingDistribution('impacto_resolucion_dilemas'), '#10B981')}
+                    ${generateHorizontalBarChartHtml("Val. Coherencia", ratingDistribution('coherencia_interacciones'), '#6366F1')}
+                    ${generateHorizontalBarChartHtml("Val. Facilidad Avance", ratingDistribution('facilidad_avance_resolucion'), '#D946EF')}
+                    <div class="lg:col-span-2">
+                    ${generateHorizontalBarChartHtml("Aplicabilidad Práctica (Visión Experta)", aplicabilidadChartData, '#3B82F6')}
+                    </div>
                  </div>`;
                  tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.valoracion_deontologica || 'N/A'}</td><td>${f.valoracion_pertinencia || 'N/A'}</td><td>${f.valoracion_calidad_interaccion || 'N/A'}</td></tr>`).join('')}</tbody>`;
+                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.valoracion_deontologica || 'N/A'}</td><td>${f.valoracion_pertinencia || 'N/A'}</td><td>${f.valoracion_calidad_interaccion || 'N/A'}</td><td>${f.impacto_resolucion_dilemas || 'N/A'}</td><td>${f.coherencia_interacciones || 'N/A'}</td><td>${f.facilidad_avance_resolucion || 'N/A'}</td><td>${(f.numero_interacciones || 0) > 0 ? f.numero_interacciones : 'N/A'}</td><td>${f.utilidad_experto_aplicabilidad || 'N/A'}</td><td>${f.utilidad_experto_justificacion || ''}</td></tr>`).join('')}</tbody>`;
                  break;
             case 'corpus':
                 title = "Informe de Validación de Corpus";
                 data = corpusFeedbacks;
-                headers = ['Fecha', 'C1 ★', 'C2 ★', 'C3 ★', 'C4 ★', 'C5 ★'];
+                headers = ['Fecha', 'C1 ★', 'C2 ★', 'C3 ★', 'C4 ★', 'C5 ★', 'C6 ★', 'C7 ★', 'C8 ★', 'C9 ★', 'C10 ★', 'C11 ★'];
                 const calculateAverage = (key: keyof FeedbackData) => data.length > 0 ? data.reduce((acc, f) => acc + ((f[key] as number) || 0), 0) / data.length : 0;
                 const corpusChartData = [
                     { label: 'C1: Fuentes Pertinentes', value: calculateAverage('corpus_c1_fuentes_pertinentes')},
@@ -323,10 +332,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                     { label: 'C3: Libre Info. No Autorizada', value: calculateAverage('corpus_c3_libre_info_no_autorizada')},
                     { label: 'C4: Detalle Suficiente', value: calculateAverage('corpus_c4_detalle_suficiente')},
                     { label: 'C5: Core Fiable y Legítimo', value: calculateAverage('corpus_c5_core_fiable_legitimo')},
+                    { label: 'C6: Cobertura Temática', value: calculateAverage('corpus_c6_cobertura_tematica')},
+                    { label: 'C7: Actualización y Vigencia', value: calculateAverage('corpus_c7_actualizacion_vigencia')},
+                    { label: 'C8: Precisión y Rigor', value: calculateAverage('corpus_c8_precision_rigor')},
+                    { label: 'C9: Representatividad y Diversidad', value: calculateAverage('corpus_c9_representatividad_diversidad')},
+                    { label: 'C10: Redacción y Claridad', value: calculateAverage('corpus_c10_redaccion_claridad')},
+                    { label: 'C11: Referenciación y Trazabilidad', value: calculateAverage('corpus_c11_referenciacion_trazabilidad')},
                 ];
                 infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Valoración Media por Criterio", corpusChartData.map(d => ({...d, value: parseFloat(d.value.toFixed(2))})), '#6366F1')}</div>`;
                 tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                         <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.corpus_c1_fuentes_pertinentes || 'N/A'}</td><td>${f.corpus_c2_estructura_exhaustiva || 'N/A'}</td><td>${f.corpus_c3_libre_info_no_autorizada || 'N/A'}</td><td>${f.corpus_c4_detalle_suficiente || 'N/A'}</td><td>${f.corpus_c5_core_fiable_legitimo || 'N/A'}</td></tr>`).join('')}</tbody>`;
+                         <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.corpus_c1_fuentes_pertinentes || 'N/A'}</td><td>${f.corpus_c2_estructura_exhaustiva || 'N/A'}</td><td>${f.corpus_c3_libre_info_no_autorizada || 'N/A'}</td><td>${f.corpus_c4_detalle_suficiente || 'N/A'}</td><td>${f.corpus_c5_core_fiable_legitimo || 'N/A'}</td><td>${f.corpus_c6_cobertura_tematica || 'N/A'}</td><td>${f.corpus_c7_actualizacion_vigencia || 'N/A'}</td><td>${f.corpus_c8_precision_rigor || 'N/A'}</td><td>${f.corpus_c9_representatividad_diversidad || 'N/A'}</td><td>${f.corpus_c10_redaccion_claridad || 'N/A'}</td><td>${f.corpus_c11_referenciacion_trazabilidad || 'N/A'}</td></tr>`).join('')}</tbody>`;
                 break;
         }
         
@@ -387,9 +402,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
     const renderGeneralView = () => {
         const stats = useMemo(() => {
             const statusCounts = activeFeedbackList.reduce((acc, f) => { acc[f.review_status] = (acc[f.review_status] || 0) + 1; return acc; }, {} as Record<string, number>);
-            const statusChartData = Object.entries(statusCounts).map(([label, value]) => ({ label, value }));
+            const statusChartData = Object.entries(statusCounts).map(([label, value]) => ({ label, value: Number(value) }));
             const typeCounts = activeFeedbackList.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
-            const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value }));
+            const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value: Number(value) }));
             return { statusChartData, typeChartData };
         }, [activeFeedbackList]);
         
@@ -413,7 +428,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
     const renderIterationView = () => {
         const stats = useMemo(() => {
             const typeCounts = iterationFeedbacks.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
-            const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value }));
+            const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value: Number(value) }));
             return { typeChartData };
         }, [iterationFeedbacks]);
         
@@ -437,10 +452,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
         const stats = useMemo(() => {
             const totalRatings = conversationFeedbacks.reduce((acc, f) => acc + (f.valoracion_deontologica || 0), 0);
             const avgRating = conversationFeedbacks.length > 0 ? (totalRatings / conversationFeedbacks.length).toFixed(1) : 'N/A';
+            const avgImpactoRating = conversationFeedbacks.length > 0 ? (conversationFeedbacks.reduce((acc, f) => acc + (f.impacto_resolucion_dilemas || 0), 0) / conversationFeedbacks.length).toFixed(1) : 'N/A';
+            const totalInteractions = conversationFeedbacks.reduce((acc, f) => acc + (f.numero_interacciones || 0), 0);
+            const avgInteractions = conversationFeedbacks.length > 0 ? (totalInteractions / conversationFeedbacks.length).toFixed(1) : 'N/A';
             const clarityCounts = conversationFeedbacks.reduce((acc, f) => { if (f.claridad) acc[f.claridad] = (acc[f.claridad] || 0) + 1; return acc; }, {} as Record<string, number>);
-            const clarityChartData = Object.entries(clarityCounts).map(([label, value]) => ({ label, value }));
+            const clarityChartData = Object.entries(clarityCounts).map(([label, value]) => ({ label, value: Number(value) }));
             const utilityCounts = conversationFeedbacks.reduce((acc, f) => { if (f.utilidad) acc[f.utilidad] = (acc[f.utilidad] || 0) + 1; return acc; }, {} as Record<string, number>);
-            const utilityChartData = Object.entries(utilityCounts).map(([label, value]) => ({ label, value }));
+            const utilityChartData = Object.entries(utilityCounts).map(([label, value]) => ({ label, value: Number(value) }));
+            const aplicabilidadCounts = conversationFeedbacks.reduce((acc, f) => { if (f.utilidad_experto_aplicabilidad) acc[f.utilidad_experto_aplicabilidad] = (acc[f.utilidad_experto_aplicabilidad] || 0) + 1; return acc; }, {} as Record<string, number>);
+            const aplicabilidadChartData = Object.entries(aplicabilidadCounts).map(([label, value]) => ({ label, value: Number(value) }));
             const ratingDistribution = (field: keyof FeedbackData) => {
                  const counts: Record<string, number> = { '1 ★': 0, '2 ★': 0, '3 ★': 0, '4 ★': 0, '5 ★': 0 };
                  conversationFeedbacks.forEach(f => {
@@ -449,7 +469,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                  });
                  return Object.entries(counts).map(([rating, count]) => ({ rating, count }));
             };
-            return { avgRating, clarityChartData, utilityChartData, deontologicalData: ratingDistribution('valoracion_deontologica'), pertinenceData: ratingDistribution('valoracion_pertinencia'), qualityData: ratingDistribution('valoracion_calidad_interaccion') };
+            return { avgRating, avgImpactoRating, avgInteractions, clarityChartData, utilityChartData, aplicabilidadChartData, deontologicalData: ratingDistribution('valoracion_deontologica'), pertinenceData: ratingDistribution('valoracion_pertinencia'), qualityData: ratingDistribution('valoracion_calidad_interaccion'), impactoData: ratingDistribution('impacto_resolucion_dilemas'), coherenciaData: ratingDistribution('coherencia_interacciones'), facilidadData: ratingDistribution('facilidad_avance_resolucion') };
         }, [conversationFeedbacks]);
         
         return (
@@ -457,17 +477,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 <ActionsBar />
                 {conversationFeedbacks.length === 0 ? <div className="text-center text-gray-500 p-4">No hay datos de feedback de conversación.</div> :
                 (<>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <KpiCard title="Total Evaluaciones" value={conversationFeedbacks.length} description="Análisis de interacciones completas" />
                         <KpiCard title="Val. Deontológica Media" value={stats.avgRating} description="Promedio sobre 5 estrellas" />
+                        <KpiCard title="Impacto en Decisión (Media)" value={stats.avgImpactoRating} description="Mejora en resolución de dilemas" />
+                        <KpiCard title="Nº Interacciones (Media)" value={stats.avgInteractions} description="Promedio de mensajes por dilema" />
                     </div>
                     <div className="mt-6">
                         <ClarityUtilityChart clarityData={stats.clarityChartData} utilityData={stats.utilityChartData} />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                     <div className="mt-6">
+                        <FeedbackByTypeChart data={stats.aplicabilidadChartData} title="Aplicabilidad Práctica (Visión Experta)" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
                         <RatingDistributionChart data={stats.deontologicalData} title="Distribución Val. Deontológica" color="#8B5CF6" />
                         <RatingDistributionChart data={stats.pertinenceData} title="Distribución Val. Pertinencia" color="#EC4899" />
                         <RatingDistributionChart data={stats.qualityData} title="Distribución Val. Calidad Interacción" color="#F59E0B" />
+                        <RatingDistributionChart data={stats.impactoData} title="Distribución Val. Impacto Decisión" color="#10B981" />
+                        <RatingDistributionChart data={stats.coherenciaData} title="Distribución Val. Coherencia" color="#6366F1" />
+                        <RatingDistributionChart data={stats.facilidadData} title="Distribución Val. Facilidad de Avance" color="#D946EF" />
                     </div>
                 </>)}
             </div>
@@ -483,6 +511,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 { label: 'C3: Libre Info. No Autorizada', value: calculateAverage('corpus_c3_libre_info_no_autorizada')},
                 { label: 'C4: Detalle Suficiente', value: calculateAverage('corpus_c4_detalle_suficiente')},
                 { label: 'C5: Core Fiable y Legítimo', value: calculateAverage('corpus_c5_core_fiable_legitimo')},
+                { label: 'C6: Cobertura Temática', value: calculateAverage('corpus_c6_cobertura_tematica') },
+                { label: 'C7: Actualización y Vigencia', value: calculateAverage('corpus_c7_actualizacion_vigencia') },
+                { label: 'C8: Precisión y Rigor', value: calculateAverage('corpus_c8_precision_rigor') },
+                { label: 'C9: Representatividad y Diversidad', value: calculateAverage('corpus_c9_representatividad_diversidad') },
+                { label: 'C10: Redacción y Claridad', value: calculateAverage('corpus_c10_redaccion_claridad') },
+                { label: 'C11: Referenciación y Trazabilidad', value: calculateAverage('corpus_c11_referenciacion_trazabilidad') },
             ];
             const globalAverage = averageChartData.length > 0 ? (averageChartData.reduce((acc, item) => acc + item.value, 0) / averageChartData.length).toFixed(2) : 'N/A';
             return { averageChartData, globalAverage };

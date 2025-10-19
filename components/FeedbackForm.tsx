@@ -30,6 +30,12 @@ const getInitialState = (formType: 'iteration' | 'conversation'): FeedbackData =
         valoracion_pertinencia: 0,
         valoracion_calidad_interaccion: 0,
         comentarios_finales: '',
+        utilidad_experto_aplicabilidad: '',
+        utilidad_experto_justificacion: '',
+        impacto_resolucion_dilemas: 0,
+        coherencia_interacciones: 0,
+        numero_interacciones: 0,
+        facilidad_avance_resolucion: 0,
         review_status: 'Pendiente',
         review_result: '',
     };
@@ -109,7 +115,16 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        let finalValue: string | number = value;
+        if (name === 'numero_interacciones') {
+            finalValue = value === '' ? 0 : parseInt(value, 10);
+            if (isNaN(finalValue as number)) {
+                finalValue = 0;
+            }
+        }
+
+        setFormData(prev => ({ ...prev, [name]: finalValue }));
          if (!touchedFields[name as keyof FeedbackData]) {
             setTouchedFields(prev => ({ ...prev, [name]: true }));
         }
@@ -327,49 +342,110 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                     <fieldset className="p-4 border border-yellow-200 rounded-lg bg-yellow-50 transition-all duration-300">
                         <legend className="text-lg font-semibold text-yellow-700 px-2">B. Evaluación Específica</legend>
                         <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Valore la conversación en su conjunto usando las siguientes escalas.</p>
-                        <div className="mt-2">
-                             <label className="block text-sm font-medium text-black flex items-center gap-2">
-                                1. Claridad de la Respuesta: ¿Fue fácil de entender?
-                                {validFields.claridad && <CheckmarkIcon />}
-                            </label>
-                            <div className="mt-1">
-                                <input type="radio" id="clara_si" name="claridad" value="Sí" checked={formData.claridad === 'Sí'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="clara_si" className="ml-1 mr-4 text-black">Sí</label>
-                                <input type="radio" id="clara_no" name="claridad" value="No" checked={formData.claridad === 'No'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="clara_no" className="ml-1 text-black">No</label>
+                        <div className="mt-2 space-y-4">
+                             <div>
+                                 <label className="block text-sm font-medium text-black flex items-center gap-2">
+                                    1. Claridad de las Respuestas: ¿Fueron faciles de entender?
+                                    {validFields.claridad && <CheckmarkIcon />}
+                                </label>
+                                <p className="text-xs text-gray-500 mt-1">Evalúe si el lenguaje utilizado fue claro, conciso y libre de ambigüedades.</p>
+                                <div className="mt-2">
+                                    <input type="radio" id="clara_si" name="claridad" value="Sí" checked={formData.claridad === 'Sí'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="clara_si" className="ml-1 mr-4 text-black">Sí</label>
+                                    <input type="radio" id="clara_no" name="claridad" value="No" checked={formData.claridad === 'No'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="clara_no" className="ml-1 text-black">No</label>
+                                </div>
+                                {errors.claridad && <p className="text-red-500 text-xs mt-1">{errors.claridad}</p>}
                             </div>
-                            {errors.claridad && <p className="text-red-500 text-xs mt-1">{errors.claridad}</p>}
-                        </div>
 
-                        <div className="mt-4">
-                             <label className="block text-sm font-medium text-black flex items-center gap-2">
-                                2. Utilidad para la Práctica: ¿Te ayudaría a resolver el dilema?
-                                {validFields.utilidad && <CheckmarkIcon />}
-                            </label>
-                            <div className="mt-1">
-                                <input type="radio" id="util_si" name="utilidad" value="Sí" checked={formData.utilidad === 'Sí'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_si" className="ml-1 mr-4 text-black">Sí</label>
-                                <input type="radio" id="util_no" name="utilidad" value="No" checked={formData.utilidad === 'No'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_no" className="ml-1 mr-4 text-black">No</label>
-                                <input type="radio" id="util_seguro" name="utilidad" value="No Estoy Seguro" checked={formData.utilidad === 'No Estoy Seguro'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_seguro" className="ml-1 text-black">No estoy seguro</label>
+                            <div>
+                                 <label className="block text-sm font-medium text-black flex items-center gap-2">
+                                    2. Utilidad para la Práctica: ¿Te ha ayudado a resolver el dilema planteado o la tarea solicitada?
+                                    {validFields.utilidad && <CheckmarkIcon />}
+                                </label>
+                                <p className="text-xs text-gray-500 mt-1">Piense si la orientación proporcionada es aplicable y relevante para un profesional en una situación real.</p>
+                                <div className="mt-2">
+                                    <input type="radio" id="util_si" name="utilidad" value="Sí" checked={formData.utilidad === 'Sí'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_si" className="ml-1 mr-4 text-black">Sí</label>
+                                    <input type="radio" id="util_no" name="utilidad" value="No" checked={formData.utilidad === 'No'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_no" className="ml-1 mr-4 text-black">No</label>
+                                    <input type="radio" id="util_seguro" name="utilidad" value="No Estoy Seguro" checked={formData.utilidad === 'No Estoy Seguro'} onChange={handleChange} onBlur={handleBlur} required={isConversationValuation}/><label htmlFor="util_seguro" className="ml-1 text-black">No estoy seguro</label>
+                                </div>
+                                 {errors.utilidad && <p className="text-red-500 text-xs mt-1">{errors.utilidad}</p>}
                             </div>
-                             {errors.utilidad && <p className="text-red-500 text-xs mt-1">{errors.utilidad}</p>}
+
+                            <div>
+                                <label className="block text-sm font-medium text-black">3. Coherencia de las Interacciones (0 a 5 estrellas):</label>
+                                <p className="text-xs text-gray-500 mt-1">Valore si las respuestas del chatbot mantuvieron un hilo conductor lógico y consistente a lo largo de la conversación.</p>
+                                <StarRating name="coherencia_interacciones" value={formData.coherencia_interacciones || 0} onChange={(value) => handleRatingChange('coherencia_interacciones', value)} />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-black">4. Facilidad para Avanzar en la Resolución (0 a 5 estrellas):</label>
+                                <p className="text-xs text-gray-500 mt-1">¿Fue sencillo guiar la conversación hacia una solución útil o el chatbot se desviaba o requería muchas correcciones?</p>
+                                <StarRating name="facilidad_avance_resolucion" value={formData.facilidad_avance_resolucion || 0} onChange={(value) => handleRatingChange('facilidad_avance_resolucion', value)} />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-black">5. Valoración Deontológica (0 a 5 estrellas):</label>
+                                <p className="text-xs text-gray-500 mt-1">¿La respuesta se alinea con los principios y valores fundamentales del código deontológico?</p>
+                                <StarRating name="valoracion_deontologica" value={formData.valoracion_deontologica || 0} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-black">6. Pertinencia de las Respuestas (0 a 5 estrellas):</label>
+                                <p className="text-xs text-gray-500 mt-1">¿Las respuestas se centraron en el dilema planteado o divagaron en información irrelevante?</p>
+                                <StarRating name="valoracion_pertinencia" value={formData.valoracion_pertinencia || 0} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-black">7. Calidad General de la Interacción (0 a 5 estrellas):</label>
+                                <p className="text-xs text-gray-500 mt-1">Valore la experiencia global, incluyendo el tono, la coherencia y la calidad general de la conversación.</p>
+                                <StarRating name="valoracion_calidad_interaccion" value={formData.valoracion_calidad_interaccion || 0} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
+                            </div>
+                             <div>
+                                <label htmlFor="numero_interacciones" className="block text-sm font-medium text-black">8. Número de Interacciones hasta Resolver (Aprox.):</label>
+                                <p className="text-xs text-gray-500 mt-1">Indique cuántos mensajes intercambió con el bot (número de mensajes enviados por usted) para llegar a una resolución válida de la tarea.</p>
+                                <input 
+                                    type="number" 
+                                    id="numero_interacciones" 
+                                    name="numero_interacciones" 
+                                    value={formData.numero_interacciones || ''} 
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    min="0"
+                                    placeholder="Ej: 5"
+                                    className="mt-1 block w-full max-w-xs rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black" 
+                                />
+                            </div>
                         </div>
-                        
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-black">3. Valoración Deontológica (0 a 5 estrellas):</label>
-                            <StarRating name="valoracion_deontologica" value={formData.valoracion_deontologica || 0} onChange={(value) => handleRatingChange('valoracion_deontologica', value)} />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-black">4. Pertinencia de las Respuestas (0 a 5 estrellas):</label>
-                            <StarRating name="valoracion_pertinencia" value={formData.valoracion_pertinencia || 0} onChange={(value) => handleRatingChange('valoracion_pertinencia', value)} />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-black">5. Calidad General de la Interacción (0 a 5 estrellas):</label>
-                            <StarRating name="valoracion_calidad_interaccion" value={formData.valoracion_calidad_interaccion || 0} onChange={(value) => handleRatingChange('valoracion_calidad_interaccion', value)} />
+                    </fieldset>
+                )}
+                
+                {isConversationValuation && (
+                    <fieldset className="p-4 border border-indigo-200 rounded-lg bg-indigo-50 transition-all duration-300">
+                        <legend className="text-lg font-semibold text-indigo-700 px-2">C. Evaluación Experta (Opcional)</legend>
+                        <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Sección orientada a profesionales para valorar la aplicabilidad práctica de la IA.</p>
+                         <div className="mt-2 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-black">
+                                    1. Desde tu experiencia profesional, ¿consideras que la respuesta facilitada por la herramienta sería realmente útil y aplicable a situaciones reales en tu ámbito?
+                                </label>
+                                <div className="mt-2">
+                                    <input type="radio" id="util_exp_si" name="utilidad_experto_aplicabilidad" value="Sí" checked={formData.utilidad_experto_aplicabilidad === 'Sí'} onChange={handleChange} /><label htmlFor="util_exp_si" className="ml-1 mr-4 text-black">Sí</label>
+                                    <input type="radio" id="util_exp_no" name="utilidad_experto_aplicabilidad" value="No" checked={formData.utilidad_experto_aplicabilidad === 'No'} onChange={handleChange} /><label htmlFor="util_exp_no" className="ml-1 mr-4 text-black">No</label>
+                                    <input type="radio" id="util_exp_depende" name="utilidad_experto_aplicabilidad" value="Depende" checked={formData.utilidad_experto_aplicabilidad === 'Depende'} onChange={handleChange} /><label htmlFor="util_exp_depende" className="ml-1 text-black">Depende</label>
+                                </div>
+                                <label htmlFor="utilidad_experto_justificacion" className="block text-sm font-medium text-black mt-3">Explica por qué:</label>
+                                <textarea id="utilidad_experto_justificacion" name="utilidad_experto_justificacion" value={formData.utilidad_experto_justificacion} onChange={handleChange} rows={2} placeholder="Justifique su respuesta anterior, especialmente si marcó 'No' o 'Depende'." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-black">2. Impacto Potencial en la Toma de Decisiones:</label>
+                                <p className="text-xs text-gray-500 mt-1">¿Crees que, en la realidad profesional, seguir la recomendación dada por el bot ayudaría a resolver la tarea o dilema que ha dado origen a esta conversación?</p>
+                                <StarRating name="impacto_resolucion_dilemas" value={formData.impacto_resolucion_dilemas || 0} onChange={(value) => handleRatingChange('impacto_resolucion_dilemas', value)} />
+                            </div>
                         </div>
                     </fieldset>
                 )}
 
                 <fieldset className="p-4 border border-gray-200 rounded-lg">
                     <legend className="text-lg font-semibold text-gray-800 px-2">
-                        {formType === 'iteration' ? 'D. Comentarios Finales (Opcional)' : 'C. Comentarios Finales (Opcional)'}
+                        {formType === 'iteration' ? 'D. Comentarios Finales (Opcional)' : 'D. Comentarios Finales (Opcional)'}
                     </legend>
                     <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Si tienes alguna reflexión adicional sobre la experiencia, compártela aquí.</p>
                     <label htmlFor="comentarios_finales" className="block text-sm font-medium text-black mt-2">¿Algún comentario adicional sobre la experiencia general?</label>

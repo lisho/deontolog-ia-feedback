@@ -55,8 +55,14 @@ const FeedbackCard: React.FC<{
         (feedback.corpus_c2_estructura_exhaustiva || 0) +
         (feedback.corpus_c3_libre_info_no_autorizada || 0) +
         (feedback.corpus_c4_detalle_suficiente || 0) +
-        (feedback.corpus_c5_core_fiable_legitimo || 0)
-    ) / 5)
+        (feedback.corpus_c5_core_fiable_legitimo || 0) +
+        (feedback.corpus_c6_cobertura_tematica || 0) +
+        (feedback.corpus_c7_actualizacion_vigencia || 0) +
+        (feedback.corpus_c8_precision_rigor || 0) +
+        (feedback.corpus_c9_representatividad_diversidad || 0) +
+        (feedback.corpus_c10_redaccion_claridad || 0) +
+        (feedback.corpus_c11_referenciacion_trazabilidad || 0)
+    ) / 11)
     : 0;
     
     const ratingToShow = isCorpusValidation ? avgCorpusRating : (feedback.valoracion_deontologica || 0);
