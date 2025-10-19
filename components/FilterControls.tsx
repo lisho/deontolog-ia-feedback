@@ -26,6 +26,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({ filters, onFilte
             <option value="Pendiente">Pendiente</option>
             <option value="En Revisión">En Revisión</option>
             <option value="Revisado">Revisado</option>
+            <option value="Cerrado">Cerrado</option>
           </select>
         </div>
         

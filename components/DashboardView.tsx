@@ -1,16 +1,131 @@
 import React, { useMemo, useState } from 'react';
-import type { FeedbackData } from '../types.ts';
+import type { FeedbackData, ReportData } from '../types.ts';
 import { KpiCard } from './KpiCard.tsx';
 import { FeedbackByStatusChart } from './charts/FeedbackByStatusChart.tsx';
 import { FeedbackByTypeChart } from './charts/FeedbackByTypeChart.tsx';
 import { ClarityUtilityChart } from './charts/ClarityUtilityChart.tsx';
 import { RatingDistributionChart } from './charts/RatingDistributionChart.tsx';
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 
 interface DashboardViewProps {
     feedbackList: FeedbackData[];
     apiKey: string;
+    addReport: (report: Omit<ReportData, 'id' | 'createdAt'>) => Promise<void>;
+    showToast: (message: string, type?: 'success' | 'error') => void;
 }
+
+// --- Report Generation Helper Functions ---
+
+const generateKpiCardsHtml = (kpis: { title: string, value: string | number }[]) => {
+    return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        ${kpis.map(kpi => `
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="text-3xl font-bold text-blue-700">${kpi.value}</div>
+                <div class="text-sm text-gray-600">${kpi.title}</div>
+            </div>
+        `).join('')}
+    </div>
+    `;
+};
+
+const generateHorizontalBarChartHtml = (title: string, data: { label: string, value: number }[], color: string) => {
+    if (!data || data.length === 0) return `<div><h4 class="text-lg font-semibold text-gray-800 mb-2">${title}</h4><p class="text-sm text-gray-500">No hay datos.</p></div>`;
+    const maxValue = Math.max(...data.map(item => item.value), 1); // Avoid division by zero
+    const barsHtml = data.map(item => `
+        <div class="mb-3">
+            <div class="flex justify-between items-center text-sm mb-1">
+                <span class="font-medium text-gray-700">${item.label}</span>
+                <span class="font-semibold text-gray-800">${item.value}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="h-2.5 rounded-full" style="width: ${(item.value / maxValue) * 100}%; background-color: ${color};"></div>
+            </div>
+        </div>
+    `).join('');
+    return `<div class="p-4 border border-gray-200 rounded-lg bg-white"><h4 class="text-lg font-semibold text-gray-800 mb-4">${title}</h4>${barsHtml}</div>`;
+};
+
+const generateDonutChartHtml = (title: string, data: { label: string, value: number, color: string }[]) => {
+    const total = data.reduce((acc, item) => acc + item.value, 0);
+    if (total === 0) return `<div><h4 class="text-lg font-semibold text-gray-800 mb-2">${title}</h4><p class="text-sm text-gray-500">No hay datos.</p></div>`;
+
+    const circumference = 2 * Math.PI * 40;
+    let offset = 0;
+    const segments = data.map(item => {
+        const percent = item.value / total;
+        const dasharray = `${percent * circumference} ${circumference}`;
+        const strokeOffset = -offset;
+        offset += percent * circumference;
+        return `<circle cx="50" cy="50" r="40" fill="transparent" stroke="${item.color}" stroke-width="20" stroke-dasharray="${dasharray}" stroke-dashoffset="${strokeOffset}" />`;
+    }).join('');
+
+    const legend = data.map(item => `
+        <li class="flex items-center justify-between">
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background-color: ${item.color};"></span><span>${item.label}</span></div>
+            <strong>${item.value}</strong>
+        </li>
+    `).join('');
+
+    return `
+    <div class="p-4 border border-gray-200 rounded-lg bg-white h-full flex flex-col">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4">${title}</h4>
+        <div class="relative w-40 h-40 mx-auto my-4">
+            <svg class="w-full h-full" viewBox="0 0 100 100"><g transform="rotate(-90, 50, 50)">${segments}</g></svg>
+            <div class="absolute inset-0 flex items-center justify-center"><span class="text-2xl font-bold text-gray-800">${total}</span></div>
+        </div>
+        <div class="mt-auto"><ul class="text-sm text-gray-600 space-y-1">${legend}</ul></div>
+    </div>`;
+};
+
+const createReportHtml = (title: string, aiSummary: string, infographicHtml: string, tableHtml: string, createdAt: string): string => {
+    return `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${title}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; background-color: #f9fafb; color: #1f2937; }
+                .container { max-width: 1024px; margin: auto; padding: 2rem; }
+                .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); padding: 1.5rem; border: 1px solid #e5e7eb; }
+                h1 { font-size: 2.25rem; font-weight: bold; color: #1d4ed8; letter-spacing: -0.025em; }
+                h2 { font-size: 1.5rem; font-weight: bold; color: #111827; border-bottom: 2px solid #93c5fd; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.5rem; }
+                .prose { max-width: none; } .prose strong { color: #111827; } .prose p { margin-top: 0; margin-bottom: 1em; }
+                table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
+                th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+                th { background-color: #f3f4f6; font-weight: 600; color: #4b5563; }
+                tbody tr:nth-child(even) { background-color: #f9fafb; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <header class="text-center mb-10">
+                    <h1>${title}</h1>
+                    <p class="text-gray-500 mt-2">Generado el ${new Date(createdAt).toLocaleString('es-ES')}</p>
+                </header>
+                <main>
+                    <section class="mb-8">
+                        <h2>Resumen Ejecutivo (IA)</h2>
+                        <div class="card prose">${aiSummary}</div>
+                    </section>
+                    <section class="mb-8">
+                        <h2>Infografía de Datos Clave</h2>
+                        ${infographicHtml}
+                    </section>
+                    <section>
+                        <h2>Datos Detallados</h2>
+                        <div class="card overflow-x-auto"><table>${tableHtml}</table></div>
+                    </section>
+                </main>
+                <footer class="text-center mt-10 text-sm text-gray-500"><p>&copy; ${new Date().getFullYear()} Colegio Oficial de Trabajo Social de León.</p></footer>
+            </div>
+        </body>
+        </html>
+    `;
+};
+
 
 const CorpusAverageChart: React.FC<{ data: { label: string, value: number }[], title: string }> = ({ data, title }) => {
     const maxValue = 5; // Max rating is 5
@@ -39,28 +154,34 @@ const CorpusAverageChart: React.FC<{ data: { label: string, value: number }[], t
     );
 };
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiKey }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiKey, addReport, showToast }) => {
     const [activeTab, setActiveTab] = useState<'general' | 'iteration' | 'conversation' | 'corpus'>('general');
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [summary, setSummary] = useState('');
 
+    // Filter out 'Cerrado' feedback for all statistics and reports
+    const activeFeedbackList = useMemo(() => 
+        feedbackList.filter(f => f.review_status !== 'Cerrado'),
+        [feedbackList]
+    );
+
     const { iterationFeedbacks, conversationFeedbacks, corpusFeedbacks } = useMemo(() => {
         const iterationTypes = ['Error o Fallo', 'Sugerencia de Mejora', 'Valoración Positiva / Uso Relevante', 'Inquietud Ética/Deontológica'];
         return {
-            iterationFeedbacks: feedbackList.filter(f => iterationTypes.includes(f.tipo_feedback)),
-            conversationFeedbacks: feedbackList.filter(f => f.tipo_feedback === 'Valorar Conversación'),
-            corpusFeedbacks: feedbackList.filter(f => f.tipo_feedback === 'Validación de Corpus'),
+            iterationFeedbacks: activeFeedbackList.filter(f => iterationTypes.includes(f.tipo_feedback)),
+            conversationFeedbacks: activeFeedbackList.filter(f => f.tipo_feedback === 'Valorar Conversación'),
+            corpusFeedbacks: activeFeedbackList.filter(f => f.tipo_feedback === 'Validación de Corpus'),
         };
-    }, [feedbackList]);
+    }, [activeFeedbackList]);
     
     const generateAiSummaryForReport = async (): Promise<string> => {
         if (!apiKey) return "API Key no configurada.";
         
-        let dataForSummary = feedbackList;
-        let promptContext = "un resumen general del feedback recibido";
+        let dataForSummary = activeFeedbackList;
+        let promptContext = "un resumen general del feedback activo (excluyendo los cerrados)";
         let statsContext = `
-            - Total de Feedbacks: ${feedbackList.length}
+            - Total de Feedbacks Activos: ${activeFeedbackList.length}
             - Feedbacks de Iteración: ${iterationFeedbacks.length}
             - Feedbacks de Conversación: ${conversationFeedbacks.length}
             - Feedbacks de Validación de Corpus: ${corpusFeedbacks.length}
@@ -90,89 +211,78 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
         try {
             const ai = new GoogleGenAI({ apiKey });
             const feedbackSample = dataForSummary.slice(0, 20).map(f => `- Tipo: ${f.tipo_feedback}, Escenario/Contexto: ${f.escenario_keywords || 'N/A'}, Descripción: ${f.descripcion || f.corpus_comentarios || 'N/A'}, Valoración: ${f.valoracion_deontologica || 'N/A'}`).join('\n');
-            const prompt = `Eres un analista de datos experto en deontología del trabajo social. Genera un informe ejecutivo conciso sobre ${promptContext}. Identifica: 1. **Tendencias Clave:** Temas recurrentes. 2. **Puntos Fuertes:** Aspectos que funcionan bien. 3. **Áreas de Mejora Críticas:** Problemas prioritarios. 4. **Recomendaciones Estratégicas:** 2-3 acciones concretas. **Datos:**\n${statsContext}\n**Muestra:**\n${feedbackSample}\nGenera el informe ahora.`;
+            const currentDate = new Date().toLocaleString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            const prompt = `
+                Eres un analista de datos experto en deontología del trabajo social. 
+                Genera un informe ejecutivo conciso en HTML (usa párrafos <p>, negritas <strong> y listas <ul><li>).
+                
+                **Fecha del Informe:** ${currentDate}.
+                
+                El informe debe analizar ${promptContext}. Identifica los siguientes puntos clave:
+                1.  **Tendencias Clave:** Temas recurrentes, problemas o éxitos más comunes.
+                2.  **Puntos Fuertes:** Aspectos que funcionan bien y reciben valoraciones positivas.
+                3.  **Áreas de Mejora Críticas:** Problemas prioritarios que requieren atención inmediata.
+                4.  **Recomendaciones Estratégicas:** Sugiere 2-3 acciones concretas y priorizadas para el equipo de desarrollo/revisión.
+
+                **Datos de Contexto:**
+                ${statsContext}
+
+                **Muestra de Feedback para Análisis:**
+                ${feedbackSample}
+                
+                Genera el informe ahora, asegurándote de incluir la fecha indicada.
+            `;
+
             const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-            return response.text.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            let summaryText = response.text;
+            // Clean the summary text to remove markdown code fences
+            summaryText = summaryText.replace(/^```(html)?\s*/, '').replace(/```\s*$/, '');
+            
+            return summaryText.trim();
         } catch (error) {
             console.error("Error generating summary:", error);
-            return "Se produjo un error al generar el resumen.";
+            return "<p>Se produjo un error al generar el resumen.</p>";
         }
     };
     
-     const createReportHtml = (title: string, aiSummary: string, infographicHtml: string, tableHtml: string): string => {
-        return `
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${title}</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                    body { font-family: sans-serif; background-color: #f9fafb; color: #1f2937; }
-                    .container { max-width: 1024px; margin: auto; padding: 2rem; }
-                    .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); padding: 1.5rem; border: 1px solid #e5e7eb; }
-                    h1 { font-size: 2.25rem; font-weight: bold; color: #1d4ed8; }
-                    h2 { font-size: 1.5rem; font-weight: bold; color: #111827; border-bottom: 2px solid #93c5fd; padding-bottom: 0.5rem; margin-top: 2rem; margin-bottom: 1rem; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-                    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-                    th { background-color: #f3f4f6; font-weight: 600; }
-                    tbody tr:hover { background-color: #f9fafb; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <header class="text-center mb-8">
-                        <h1>${title}</h1>
-                        <p class="text-gray-500">Generado el ${new Date().toLocaleDateString('es-ES')}</p>
-                    </header>
-                    <main>
-                        <section class="mb-8">
-                            <h2>Resumen Ejecutivo (IA)</h2>
-                            <div class="card prose"><p>${aiSummary}</p></div>
-                        </section>
-                        <section class="mb-8">
-                            <h2>Infografía de Datos Clave</h2>
-                            <div class="card">${infographicHtml}</div>
-                        </section>
-                        <section>
-                            <h2>Datos Detallados</h2>
-                            <div class="card overflow-x-auto">
-                                <table>${tableHtml}</table>
-                            </div>
-                        </section>
-                    </main>
-                    <footer class="text-center mt-8 text-sm text-gray-500">
-                        <p>&copy; ${new Date().getFullYear()} Colegio Oficial de Trabajo Social de León.</p>
-                    </footer>
-                </div>
-            </body>
-            </html>
-        `;
-    };
-
     const handleGenerateReport = async () => {
         setIsGeneratingReport(true);
         const aiSummary = await generateAiSummaryForReport();
         
         let title = "Informe General de Feedback";
-        let infographic = "";
-        let table = "";
+        let infographicHtml = "";
+        let tableHtml = "";
         let data: FeedbackData[] = [];
         let headers: string[] = [];
 
         switch (activeTab) {
             case 'general':
-                title = "Informe General de Feedback";
-                data = feedbackList;
+                title = "Informe General de Feedback (Activos)";
+                data = activeFeedbackList;
                 headers = ['Fecha', 'Tipo', 'Escenario', 'Valoración', 'Estado'];
-                infographic = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div class="p-4 bg-blue-50 rounded-lg"><div class="text-3xl font-bold text-blue-700">${feedbackList.length}</div><div class="text-sm text-blue-600">Total</div></div>
-                    <div class="p-4 bg-indigo-50 rounded-lg"><div class="text-3xl font-bold text-indigo-700">${iterationFeedbacks.length}</div><div class="text-sm text-indigo-600">Iteraciones</div></div>
-                    <div class="p-4 bg-green-50 rounded-lg"><div class="text-3xl font-bold text-green-700">${conversationFeedbacks.length}</div><div class="text-sm text-green-600">Conversaciones</div></div>
-                    <div class="p-4 bg-purple-50 rounded-lg"><div class="text-3xl font-bold text-purple-700">${corpusFeedbacks.length}</div><div class="text-sm text-purple-600">Valid. Corpus</div></div>
-                </div>`;
-                table = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                const kpis = [
+                    { title: 'Total Activos', value: activeFeedbackList.length },
+                    { title: 'Iteraciones', value: iterationFeedbacks.length },
+                    { title: 'Conversaciones', value: conversationFeedbacks.length },
+                    { title: 'Valid. Corpus', value: corpusFeedbacks.length },
+                ];
+                const statusCounts = activeFeedbackList.reduce((acc, f) => { acc[f.review_status] = (acc[f.review_status] || 0) + 1; return acc; }, {} as Record<string, number>);
+                const statusChartData = [
+                    { label: 'Pendiente', value: statusCounts['Pendiente'] || 0, color: '#F59E0B' },
+                    { label: 'En Revisión', value: statusCounts['En Revisión'] || 0, color: '#3B82F6' },
+                    { label: 'Revisado', value: statusCounts['Revisado'] || 0, color: '#10B981' },
+                ];
+                const typeCounts = activeFeedbackList.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
+                const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value }));
+                infographicHtml = `
+                    <div class="card mb-6">${generateKpiCardsHtml(kpis)}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${generateDonutChartHtml("Feedback por Estado", statusChartData)}
+                        ${generateHorizontalBarChartHtml("Feedback por Tipo", typeChartData, '#8B5CF6')}
+                    </div>`;
+                tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.tipo_feedback}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.valoracion_deontologica || 'N/A'}</td><td>${f.review_status}</td></tr>`).join('')}</tbody>`;
                 break;
             case 'iteration':
@@ -180,58 +290,76 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 data = iterationFeedbacks;
                 headers = ['Fecha', 'Tipo', 'Escenario', 'Descripción'];
                 const iterationCounts = data.reduce((acc, f) => { acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
-                const maxVal = Math.max(...Object.values(iterationCounts));
-                infographic = `<div class="space-y-3">${Object.entries(iterationCounts).map(([label, value]) => `
-                    <div>
-                        <div class="flex justify-between text-sm"><span class="font-medium">${label}</span><span>${value}</span></div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${maxVal > 0 ? (value/maxVal)*100 : 0}%"></div></div>
-                    </div>`).join('')}</div>`;
-                table = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                const iterationChartData = Object.entries(iterationCounts).map(([label, value]) => ({label, value}));
+                infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Desglose por Tipo de Iteración", iterationChartData, '#3B82F6')}</div>`;
+                tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.tipo_feedback}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.descripcion || 'N/A'}</td></tr>`).join('')}</tbody>`;
                 break;
             case 'conversation':
                  title = "Informe de Análisis de Conversaciones";
                  data = conversationFeedbacks;
                  headers = ['Fecha', 'Escenario', 'Deontología ★', 'Pertinencia ★', 'Calidad ★'];
-                 const avgDeon = data.length > 0 ? (data.reduce((a, b) => a + (b.valoracion_deontologica || 0), 0) / data.length).toFixed(1) : 'N/A';
-                 infographic = `<div class="text-center"><div class="text-5xl font-bold text-green-700">${avgDeon}</div><div class="text-lg text-green-600">Valoración Deontológica Media</div></div>`;
-                 table = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                 const ratingDistribution = (field: keyof FeedbackData) => {
+                     const counts: Record<string, number> = { '1 ★': 0, '2 ★': 0, '3 ★': 0, '4 ★': 0, '5 ★': 0 };
+                     data.forEach(f => { const rating = f[field] as number; if (rating >= 1 && rating <= 5) counts[`${rating} ★`] = (counts[`${rating} ★`] || 0) + 1; });
+                     return Object.entries(counts).map(([label, value]) => ({ label, value }));
+                 };
+                 infographicHtml = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    ${generateHorizontalBarChartHtml("Val. Deontológica", ratingDistribution('valoracion_deontologica'), '#8B5CF6')}
+                    ${generateHorizontalBarChartHtml("Val. Pertinencia", ratingDistribution('valoracion_pertinencia'), '#EC4899')}
+                    ${generateHorizontalBarChartHtml("Val. Calidad", ratingDistribution('valoracion_calidad_interaccion'), '#F59E0B')}
+                 </div>`;
+                 tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                           <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.valoracion_deontologica || 'N/A'}</td><td>${f.valoracion_pertinencia || 'N/A'}</td><td>${f.valoracion_calidad_interaccion || 'N/A'}</td></tr>`).join('')}</tbody>`;
                  break;
             case 'corpus':
                 title = "Informe de Validación de Corpus";
                 data = corpusFeedbacks;
                 headers = ['Fecha', 'C1 ★', 'C2 ★', 'C3 ★', 'C4 ★', 'C5 ★'];
-                const corpusAvgs = [
-                    { label: 'C1', value: data.length > 0 ? data.reduce((a, b) => a + (b.corpus_c1_fuentes_pertinentes || 0), 0) / data.length : 0 },
-                    { label: 'C2', value: data.length > 0 ? data.reduce((a, b) => a + (b.corpus_c2_estructura_exhaustiva || 0), 0) / data.length : 0 },
-                    { label: 'C3', value: data.length > 0 ? data.reduce((a, b) => a + (b.corpus_c3_libre_info_no_autorizada || 0), 0) / data.length : 0 },
-                    { label: 'C4', value: data.length > 0 ? data.reduce((a, b) => a + (b.corpus_c4_detalle_suficiente || 0), 0) / data.length : 0 },
-                    { label: 'C5', value: data.length > 0 ? data.reduce((a, b) => a + (b.corpus_c5_core_fiable_legitimo || 0), 0) / data.length : 0 },
+                const calculateAverage = (key: keyof FeedbackData) => data.length > 0 ? data.reduce((acc, f) => acc + ((f[key] as number) || 0), 0) / data.length : 0;
+                const corpusChartData = [
+                    { label: 'C1: Fuentes Pertinentes', value: calculateAverage('corpus_c1_fuentes_pertinentes')},
+                    { label: 'C2: Estructura Exhaustiva', value: calculateAverage('corpus_c2_estructura_exhaustiva')},
+                    { label: 'C3: Libre Info. No Autorizada', value: calculateAverage('corpus_c3_libre_info_no_autorizada')},
+                    { label: 'C4: Detalle Suficiente', value: calculateAverage('corpus_c4_detalle_suficiente')},
+                    { label: 'C5: Core Fiable y Legítimo', value: calculateAverage('corpus_c5_core_fiable_legitimo')},
                 ];
-                infographic = `<div class="space-y-3">${corpusAvgs.map(item => `
-                    <div>
-                        <div class="flex justify-between text-sm"><span class="font-medium">${item.label}</span><span>${item.value.toFixed(2)}/5</span></div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-purple-500 h-2.5 rounded-full" style="width: ${(item.value / 5) * 100}%"></div></div>
-                    </div>`).join('')}</div>`;
-                table = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Valoración Media por Criterio", corpusChartData.map(d => ({...d, value: parseFloat(d.value.toFixed(2))})), '#6366F1')}</div>`;
+                tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.corpus_c1_fuentes_pertinentes || 'N/A'}</td><td>${f.corpus_c2_estructura_exhaustiva || 'N/A'}</td><td>${f.corpus_c3_libre_info_no_autorizada || 'N/A'}</td><td>${f.corpus_c4_detalle_suficiente || 'N/A'}</td><td>${f.corpus_c5_core_fiable_legitimo || 'N/A'}</td></tr>`).join('')}</tbody>`;
                 break;
         }
-
-        const reportHtml = createReportHtml(title, aiSummary, infographic, table);
-        const newWindow = window.open();
-        newWindow?.document.write(reportHtml);
-        newWindow?.document.close();
         
-        setIsGeneratingReport(false);
+        const reportCreatedAt = new Date().toISOString();
+        const reportData: Omit<ReportData, 'id' | 'createdAt'> = {
+            title,
+            tab: activeTab,
+            aiSummary,
+            infographicHtml,
+            tableHtml,
+        };
+
+        try {
+            await addReport(reportData);
+            showToast('Informe generado y guardado en el historial.', 'success');
+            
+            const fullReportHtml = createReportHtml(title, aiSummary, infographicHtml, tableHtml, reportCreatedAt);
+            const newWindow = window.open();
+            newWindow?.document.write(fullReportHtml);
+            newWindow?.document.close();
+        } catch (error) {
+            console.error("Failed to save or generate report:", error);
+            showToast('Error al guardar el informe.', 'error');
+        } finally {
+            setIsGeneratingReport(false);
+        }
     };
 
     const handleGenerateSummary = async () => {
         setIsGeneratingSummary(true);
         setSummary('');
         const summaryText = await generateAiSummaryForReport();
-        setSummary(summaryText.replace(/<br \/>/g, '\n'));
+        setSummary(summaryText); // Store as HTML
         setIsGeneratingSummary(false);
     };
     
@@ -249,27 +377,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 onClick={handleGenerateReport}
                 disabled={isGeneratingReport || !apiKey}
                 className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                title={!apiKey ? 'Configure la API Key para usar esta función' : 'Generar informe detallado'}
+                title={!apiKey ? 'Configure la API Key para usar esta función' : 'Generar y guardar informe detallado'}
             >
-                 {isGeneratingReport ? 'Generando...' : '📄 Generar Informe con Infografía'}
+                 {isGeneratingReport ? 'Generando...' : '📄 Generar y Guardar Informe'}
             </button>
         </div>
     );
     
     const renderGeneralView = () => {
         const stats = useMemo(() => {
-            const statusCounts = feedbackList.reduce((acc, f) => { acc[f.review_status] = (acc[f.review_status] || 0) + 1; return acc; }, {} as Record<string, number>);
+            const statusCounts = activeFeedbackList.reduce((acc, f) => { acc[f.review_status] = (acc[f.review_status] || 0) + 1; return acc; }, {} as Record<string, number>);
             const statusChartData = Object.entries(statusCounts).map(([label, value]) => ({ label, value }));
-            const typeCounts = feedbackList.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
+            const typeCounts = activeFeedbackList.reduce((acc, f) => { if (f.tipo_feedback) acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
             const typeChartData = Object.entries(typeCounts).map(([label, value]) => ({ label, value }));
             return { statusChartData, typeChartData };
-        }, [feedbackList]);
+        }, [activeFeedbackList]);
         
         return (
             <div>
                  <ActionsBar />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <KpiCard title="Total de Feedbacks" value={feedbackList.length} description="Registros que coinciden con los filtros" />
+                    <KpiCard title="Total de Feedbacks (Activos)" value={activeFeedbackList.length} description="Registros que coinciden con los filtros (excl. cerrados)" />
                     <KpiCard title="Total Iteraciones" value={iterationFeedbacks.length} description="Errores, sugerencias, etc." />
                     <KpiCard title="Total Conversaciones" value={conversationFeedbacks.length} description="Evaluaciones completas" />
                     <KpiCard title="Total Valid. Corpus" value={corpusFeedbacks.length} description="Cuestionarios de expertos" />
@@ -405,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">Resumen Ejecutivo (IA) - {
                         { 'general': 'Visión General', 'iteration': 'Análisis de Iteraciones', 'conversation': 'Análisis de Conversación', 'corpus': 'Validación de Corpus' }[activeTab]
                     }</h4>
-                    <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{summary}</div>
+                    <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: summary }}></div>
                 </div>
             )}
             

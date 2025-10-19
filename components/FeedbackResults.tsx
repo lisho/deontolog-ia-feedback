@@ -22,6 +22,8 @@ const getStatusColor = (status: ReviewStatus) => {
             return 'bg-blue-200 text-blue-800';
         case 'Revisado':
             return 'bg-green-200 text-green-800';
+        case 'Cerrado':
+            return 'bg-gray-300 text-gray-800';
         default:
             return 'bg-gray-200 text-gray-800';
     }
@@ -136,6 +138,7 @@ const FeedbackCard: React.FC<{
                                     <option value="Pendiente">Pendiente</option>
                                     <option value="En Revisión">En Revisión</option>
                                     <option value="Revisado">Revisado</option>
+                                    <option value="Cerrado">Cerrado</option>
                                 </select>
                             </div>
                             <div>

@@ -13,6 +13,7 @@ import { LoginModal } from './components/LoginModal.tsx';
 import { InstructionsModal } from './components/InstructionsModal.tsx';
 import { CorpusValidationForm } from './components/CorpusValidationForm.tsx';
 import { ApiKeyModal } from './components/ApiKeyModal.tsx';
+import { ReportHistoryView } from './components/ReportHistoryView.tsx';
 
 
 interface ToastState {
@@ -25,8 +26,12 @@ type InstructionsType = 'iteration' | 'conversation' | 'corpus_validation' | 'al
 
 // Component for the full administrative view
 const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
-    const { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback } = useDatabase();
-    const [view, setView] = useState<'results' | 'management' | 'dashboard'>('results');
+    const { 
+        feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, 
+        bulkUpdateFeedbackStatus, bulkDeleteFeedback, reports, isLoadingReports, addReport, deleteReport 
+    } = useDatabase();
+    
+    const [view, setView] = useState<'results' | 'management' | 'dashboard' | 'history'>('results');
     const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFiltersVisible, setIsFiltersVisible] = useState(false);
@@ -134,7 +139,9 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
                     apiKey={apiKey}
                 />;
             case 'dashboard':
-                return <DashboardView feedbackList={filteredFeedback} apiKey={apiKey} />;
+                return <DashboardView feedbackList={filteredFeedback} apiKey={apiKey} addReport={addReport} showToast={showToast} />;
+            case 'history':
+                return <ReportHistoryView reports={reports} isLoading={isLoadingReports} onDeleteReport={deleteReport} showToast={showToast} />;
             default:
                 return <FeedbackResults feedbackList={filteredFeedback} isLoading={isLoading} onUpdateReview={updateFeedbackReview} onDelete={deleteFeedback} showToast={showToast} />;
         }
@@ -166,6 +173,9 @@ const FullAppView = ({ onLogout }: { onLogout: () => void }) => {
                             </button>
                             <button onClick={() => { setView('dashboard'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
                                 Estadísticas
+                            </button>
+                             <button onClick={() => { setView('history'); setIsMenuOpen(false); }} className={`px-4 py-2 rounded-md text-sm font-medium w-full text-left md:text-center ${view === 'history' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}>
+                                Historial
                             </button>
                              <button onClick={() => setIsApiKeyModalOpen(true)} className="p-2 rounded-full text-gray-600 hover:bg-gray-200" aria-label="Configurar API Key">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

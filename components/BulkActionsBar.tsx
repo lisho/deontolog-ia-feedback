@@ -36,6 +36,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({ selectedCount, o
                         <option value="Pendiente">Pendiente</option>
                         <option value="En Revisión">En Revisión</option>
                         <option value="Revisado">Revisado</option>
+                        <option value="Cerrado">Cerrado</option>
                     </select>
                     <button
                         onClick={handleUpdateClick}

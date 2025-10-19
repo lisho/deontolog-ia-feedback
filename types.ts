@@ -1,4 +1,4 @@
-export type ReviewStatus = 'Pendiente' | 'En Revisión' | 'Revisado';
+export type ReviewStatus = 'Pendiente' | 'En Revisión' | 'Revisado' | 'Cerrado';
 
 export interface FeedbackData {
   id?: string;
@@ -31,6 +31,17 @@ export interface FeedbackData {
   review_status: ReviewStatus;
   review_result: string;
 }
+
+export interface ReportData {
+  id?: string;
+  title: string;
+  tab: 'general' | 'iteration' | 'conversation' | 'corpus';
+  aiSummary: string;
+  infographicHtml: string;
+  tableHtml: string;
+  createdAt?: string; // Stored as ISO string on the client
+}
+
 
 export interface FilterState {
   status: ReviewStatus | '';
