@@ -180,6 +180,55 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
     
     const isConversationValuation = formType === 'conversation';
 
+    const renderIterationSpecificFields = () => {
+        if (formType !== 'iteration') {
+            return null;
+        }
+
+        return (
+            <>
+                <fieldset className="p-4 border border-gray-200 rounded-lg">
+                    <legend className="text-lg font-semibold text-gray-800 px-2 flex items-center gap-2">
+                        B. Tipo de Feedback (Marque una)
+                        {validFields.tipo_feedback && <CheckmarkIcon />}
+                    </legend>
+                    <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Elija la categoría que mejor describa el motivo de su feedback.</p>
+                    <div className="mt-2 space-y-2">
+                        {[
+                            { id: 'error', value: 'Error o Fallo', label: '1. Reporte de Error o Fallo (Bug)' },
+                            { id: 'mejora', value: 'Sugerencia de Mejora', label: '2. Sugerencia de Mejora' },
+                            { id: 'positivo', value: 'Valoración Positiva / Uso Relevante', label: '3. Valoración Positiva / Uso Relevante' },
+                            { id: 'etica', value: 'Inquietud Ética/Deontológica', label: '4. Inquietud Ética/Deontológica' },
+                        ].map(option => (
+                            <div key={option.id} className="flex items-center">
+                                <input type="radio" id={option.id} name="tipo_feedback" value={option.value} checked={formData.tipo_feedback === option.value} onChange={handleChange} onBlur={handleBlur} className="text-blue-600 focus:ring-blue-500" required/>
+                                <label htmlFor={option.id} className="ml-3 text-sm font-medium text-black">{option.label}</label>
+                            </div>
+                        ))}
+                    </div>
+                    {errors.tipo_feedback && <p className="text-red-500 text-xs mt-2">{errors.tipo_feedback}</p>}
+                </fieldset>
+
+                <fieldset className="p-4 border border-gray-200 rounded-lg">
+                    <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
+                    <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Proporcione detalles específicos sobre lo ocurrido. Si es posible, incluya la respuesta del chatbot.</p>
+                    <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
+                    <div className="relative">
+                        <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} onBlur={handleBlur} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
+                        {validFields.descripcion && (
+                            <div className="absolute top-0 right-0 pt-3 pr-3 flex items-center pointer-events-none">
+                                <CheckmarkIcon />
+                            </div>
+                        )}
+                    </div>
+                    {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
+                    <label htmlFor="respuesta_chatbot" className="block text-sm font-medium text-black mt-4">Copia aquí la respuesta del chatbot (opcional):</label>
+                    <textarea id="respuesta_chatbot" name="respuesta_chatbot" value={formData.respuesta_chatbot} onChange={handleChange} onBlur={handleBlur} rows={3} placeholder="Pegue la respuesta de la IA para facilitar la revisión deontológica." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
+                </fieldset>
+            </>
+        );
+    };
+
     if (showSuccessMessage) {
         return (
             <div className="text-center p-8">
@@ -272,48 +321,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                     {errors.escenario_keywords && <p className="text-red-500 text-xs mt-1">{errors.escenario_keywords}</p>}
                 </fieldset>
 
-                {formType === 'iteration' && (
-                    <>
-                        <fieldset className="p-4 border border-gray-200 rounded-lg">
-                            <legend className="text-lg font-semibold text-gray-800 px-2 flex items-center gap-2">
-                                B. Tipo de Feedback (Marque una)
-                                {validFields.tipo_feedback && <CheckmarkIcon />}
-                            </legend>
-                            <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Elija la categoría que mejor describa el motivo de su feedback.</p>
-                            <div className="mt-2 space-y-2">
-                                {[
-                                    { id: 'error', value: 'Error o Fallo', label: '1. Reporte de Error o Fallo (Bug)' },
-                                    { id: 'mejora', value: 'Sugerencia de Mejora', label: '2. Sugerencia de Mejora' },
-                                    { id: 'positivo', value: 'Valoración Positiva / Uso Relevante', label: '3. Valoración Positiva / Uso Relevante' },
-                                    { id: 'etica', value: 'Inquietud Ética/Deontológica', label: '4. Inquietud Ética/Deontológica' },
-                                ].map(option => (
-                                    <div key={option.id} className="flex items-center">
-                                        <input type="radio" id={option.id} name="tipo_feedback" value={option.value} checked={formData.tipo_feedback === option.value} onChange={handleChange} onBlur={handleBlur} className="text-blue-600 focus:ring-blue-500" required/>
-                                        <label htmlFor={option.id} className="ml-3 text-sm font-medium text-black">{option.label}</label>
-                                    </div>
-                                ))}
-                            </div>
-                            {errors.tipo_feedback && <p className="text-red-500 text-xs mt-2">{errors.tipo_feedback}</p>}
-                        </fieldset>
-
-                        <fieldset className="p-4 border border-gray-200 rounded-lg">
-                            <legend className="text-lg font-semibold text-gray-800 px-2">C. Descripción Detallada</legend>
-                            <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Proporcione detalles específicos sobre lo ocurrido. Si es posible, incluya la respuesta del chatbot.</p>
-                            <label htmlFor="descripcion" className="block text-sm font-medium text-black mt-2">Detalle (Error, Sugerencia o Aspecto Útil):</label>
-                            <div className="relative">
-                                <textarea id="descripcion" name="descripcion" value={formData.descripcion} onChange={handleChange} onBlur={handleBlur} rows={4} placeholder="Describa brevemente el problema encontrado o el aspecto relevante." className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.descripcion ? 'border-red-500' : 'border-gray-300'}`} required></textarea>
-                                {validFields.descripcion && (
-                                    <div className="absolute top-0 right-0 pt-3 pr-3 flex items-center pointer-events-none">
-                                        <CheckmarkIcon />
-                                    </div>
-                                )}
-                            </div>
-                            {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
-                            <label htmlFor="respuesta_chatbot" className="block text-sm font-medium text-black mt-4">Copia aquí la respuesta del chatbot (opcional):</label>
-                            <textarea id="respuesta_chatbot" name="respuesta_chatbot" value={formData.respuesta_chatbot} onChange={handleChange} onBlur={handleBlur} rows={3} placeholder="Pegue la respuesta de la IA para facilitar la revisión deontológica." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black"></textarea>
-                        </fieldset>
-                    </>
-                )}
+                {renderIterationSpecificFields()}
                 
                 {isConversationValuation && (
                     <fieldset className="p-4 border border-yellow-200 rounded-lg bg-yellow-50 transition-all duration-300">
