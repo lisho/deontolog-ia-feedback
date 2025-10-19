@@ -1,217 +1,181 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FeedbackData, ReviewStatus } from '../types.ts';
-
-const DB_NAME = 'DeontoFeedbackDB';
-const STORE_NAME = 'feedback';
-const DB_VERSION = 1;
-
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-const openDB = (): Promise<IDBDatabase> => {
-  if (dbPromise) {
-    return dbPromise;
-  }
-  dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = (event) => {
-      console.error('Database error:', request.error);
-      reject(request.error);
-    };
-
-    request.onsuccess = (event) => {
-      resolve(request.result);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-    };
-  });
-  return dbPromise;
-};
+import { db } from '../firebaseConfig.ts';
+import {
+    collection,
+    addDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp,
+    doc,
+    updateDoc,
+    deleteDoc,
+    writeBatch,
+    Timestamp
+} from 'firebase/firestore';
 
 
-// Real database interactions with IndexedDB
 export const useDatabase = () => {
     const [feedbackList, setFeedbackList] = useState<FeedbackData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchFeedback = async () => {
-            setIsLoading(true);
-            try {
-                const db = await openDB();
-                const transaction = db.transaction(STORE_NAME, 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    const data: FeedbackData[] = request.result;
-                    const sortedData = data.sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
-                    setFeedbackList(sortedData);
-                    setIsLoading(false);
-                };
-                request.onerror = () => {
-                    console.error('Error fetching data from DB', request.error);
-                    setFeedbackList([]);
-                    setIsLoading(false);
-                }
-            } catch (error) {
-                console.error("Failed to open DB", error);
-                setFeedbackList([]);
-                setIsLoading(false);
-            }
-        };
+        setIsLoading(true);
+        const feedbackCol = collection(db, 'feedback');
+        const q = query(feedbackCol, orderBy('timestamp', 'desc'));
 
-        fetchFeedback();
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const data: FeedbackData[] = querySnapshot.docs.map(doc => {
+                const d = doc.data();
+
+                // 1. Create a guaranteed-clean object with default primitive values.
+                const sanitized: FeedbackData = {
+                    id: doc.id,
+                    nombre_evaluador: '',
+                    fecha_hora: '',
+                    dispositivo: '',
+                    escenario_keywords: '',
+                    tipo_feedback: '',
+                    descripcion: '',
+                    respuesta_chatbot: '',
+                    claridad: '',
+                    utilidad: '',
+                    valoracion_deontologica: 0,
+                    valoracion_pertinencia: 0,
+                    valoracion_calidad_interaccion: 0,
+                    comentarios_finales: '',
+                    corpus_c1_fuentes_pertinentes: 0,
+                    corpus_c2_estructura_exhaustiva: 0,
+                    corpus_c3_libre_info_no_autorizada: 0,
+                    corpus_c4_detalle_suficiente: 0,
+                    corpus_c5_core_fiable_legitimo: 0,
+                    corpus_comentarios: '',
+                    corpus_propuestas: '',
+                    timestamp: new Date(0).toISOString(),
+                    review_status: 'Pendiente',
+                    review_result: '',
+                };
+
+                // 2. Defensively populate the clean object with converted primitives.
+                
+                // Process strings
+                const stringKeys: (keyof FeedbackData)[] = ['nombre_evaluador', 'dispositivo', 'escenario_keywords', 'tipo_feedback', 'descripcion', 'respuesta_chatbot', 'claridad', 'utilidad', 'comentarios_finales', 'corpus_comentarios', 'corpus_propuestas', 'review_status', 'review_result'];
+                stringKeys.forEach(key => {
+                    if (d[key] != null) {
+                        (sanitized as any)[key] = String(d[key]);
+                    }
+                });
+
+                // Process numbers
+                const numberKeys: (keyof FeedbackData)[] = ['valoracion_deontologica', 'valoracion_pertinencia', 'valoracion_calidad_interaccion', 'corpus_c1_fuentes_pertinentes', 'corpus_c2_estructura_exhaustiva', 'corpus_c3_libre_info_no_autorizada', 'corpus_c4_detalle_suficiente', 'corpus_c5_core_fiable_legitimo'];
+                numberKeys.forEach(key => {
+                    if (d[key] != null) {
+                        const num = Number(d[key]);
+                        (sanitized as any)[key] = isNaN(num) ? 0 : num;
+                    }
+                });
+
+                // Special handling for dates
+                const tsSource = d.timestamp;
+                if (tsSource instanceof Timestamp) {
+                    sanitized.timestamp = tsSource.toDate().toISOString();
+                } else if (typeof tsSource === 'string' && tsSource) {
+                    sanitized.timestamp = tsSource;
+                }
+
+                const fhSource = d.fecha_hora;
+                if (fhSource instanceof Timestamp) {
+                    const date = fhSource.toDate();
+                    const timezoneOffset = date.getTimezoneOffset() * 60000;
+                    sanitized.fecha_hora = new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+                } else if (typeof fhSource === 'string' && fhSource) {
+                    sanitized.fecha_hora = fhSource;
+                }
+                
+                return sanitized;
+            });
+
+            setFeedbackList(data);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching data from Firestore:", error);
+            if (error.code === 'failed-precondition') {
+                 console.error("Firestore error: Missing or insufficient permissions. Make sure your Firestore security rules are set up correctly and you have created the necessary indexes.");
+            }
+            setIsLoading(false);
+            setFeedbackList([]);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const addFeedback = useCallback(async (data: FeedbackData) => {
-        const newFeedback: FeedbackData = {
-            ...data,
-            id: `fb_${Date.now()}`,
-            timestamp: new Date(),
-            review_status: 'Pendiente',
+        const { id, timestamp, ...feedbackData } = data;
+        
+        const newFeedback = {
+            ...feedbackData,
+            timestamp: serverTimestamp(),
         };
 
-        const db = await openDB();
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.add(newFeedback);
-
-        return new Promise<void>((resolve, reject) => {
-            request.onsuccess = () => {
-                setFeedbackList(prev => [newFeedback, ...prev]);
-                resolve();
-            };
-            request.onerror = () => {
-                console.error("Error adding feedback", request.error);
-                reject(request.error);
-            };
-        });
+        try {
+            await addDoc(collection(db, 'feedback'), newFeedback);
+        } catch (error) {
+            console.error("Error adding feedback to Firestore", error);
+            throw error;
+        }
     }, []);
 
     const updateFeedbackReview = useCallback(async (id: string, status: ReviewStatus, result: string) => {
-        const db = await openDB();
-        
-        return new Promise<void>((resolve, reject) => {
-            const transaction = db.transaction(STORE_NAME, 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
-            const getRequest = store.get(id);
-
-            getRequest.onerror = () => {
-                console.error("Error fetching feedback for update", getRequest.error);
-                reject(getRequest.error);
-            };
-
-            getRequest.onsuccess = () => {
-                const feedbackToUpdate = getRequest.result;
-                if (feedbackToUpdate) {
-                    const updatedFeedback = { ...feedbackToUpdate, review_status: status, review_result: result };
-                    const putRequest = store.put(updatedFeedback);
-                    
-                    putRequest.onsuccess = () => {
-                        setFeedbackList(prev =>
-                            prev.map(fb =>
-                                fb.id === id ? updatedFeedback : fb
-                            )
-                        );
-                        resolve();
-                    };
-                    putRequest.onerror = () => {
-                        console.error("Error updating feedback", putRequest.error);
-                        reject(putRequest.error);
-                    };
-                } else {
-                    reject(new Error("Feedback not found"));
-                }
-            };
-        });
+        const feedbackDoc = doc(db, 'feedback', id);
+        try {
+            await updateDoc(feedbackDoc, {
+                review_status: status,
+                review_result: result,
+            });
+        } catch (error) {
+            console.error("Error updating feedback in Firestore", error);
+            throw error;
+        }
     }, []);
 
     const deleteFeedback = useCallback(async (id: string) => {
-        const db = await openDB();
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.delete(id);
-
-        return new Promise<void>((resolve, reject) => {
-            request.onsuccess = () => {
-                setFeedbackList(prev => prev.filter(fb => fb.id !== id));
-                resolve();
-            };
-            request.onerror = () => {
-                console.error("Error deleting feedback", request.error);
-                reject(request.error);
-            }
-        });
-    }, []);
-    
-    const bulkUpdateFeedbackStatus = useCallback((ids: string[], status: ReviewStatus) => {
-        return openDB().then(db => {
-            return new Promise<void>((resolve, reject) => {
-                const transaction = db.transaction(STORE_NAME, 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-
-                // Queue all update operations
-                ids.forEach(id => {
-                    const getRequest = store.get(id);
-                    getRequest.onsuccess = () => {
-                        const item = getRequest.result;
-                        if (item) {
-                            const updatedItem = { ...item, review_status: status };
-                            store.put(updatedItem);
-                        }
-                    };
-                });
-
-                transaction.oncomplete = () => {
-                    // Update React state only after the DB transaction is successful
-                    setFeedbackList(prev =>
-                        prev.map(fb =>
-                            fb.id && ids.includes(fb.id) ? { ...fb, review_status: status } : fb
-                        )
-                    );
-                    resolve();
-                };
-
-                transaction.onerror = () => {
-                    console.error("Bulk update transaction failed", transaction.error);
-                    reject(transaction.error);
-                };
-            });
-        });
+        const feedbackDoc = doc(db, 'feedback', id);
+        try {
+            await deleteDoc(feedbackDoc);
+        } catch (error) {
+            console.error("Error deleting feedback from Firestore", error);
+            throw error;
+        }
     }, []);
 
-    const bulkDeleteFeedback = useCallback((ids: string[]) => {
-        return openDB().then(db => {
-            return new Promise<void>((resolve, reject) => {
-                const transaction = db.transaction(STORE_NAME, 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-
-                // Queue all delete operations
-                ids.forEach(id => {
-                    store.delete(id);
-                });
-
-                transaction.oncomplete = () => {
-                    // Update React state only after the DB transaction is successful
-                    setFeedbackList(prev => prev.filter(fb => fb.id && !ids.includes(fb.id)));
-                    resolve();
-                };
-
-                transaction.onerror = () => {
-                    console.error("Bulk delete transaction failed", transaction.error);
-                    reject(transaction.error);
-                };
-            });
+    const bulkUpdateFeedbackStatus = useCallback(async (ids: string[], status: ReviewStatus) => {
+        const batch = writeBatch(db);
+        ids.forEach(id => {
+            const feedbackDoc = doc(db, 'feedback', id);
+            batch.update(feedbackDoc, { review_status: status });
         });
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error in bulk update in Firestore", error);
+            throw error;
+        }
     }, []);
 
+    const bulkDeleteFeedback = useCallback(async (ids: string[]) => {
+        const batch = writeBatch(db);
+        ids.forEach(id => {
+            const feedbackDoc = doc(db, 'feedback', id);
+            batch.delete(feedbackDoc);
+        });
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error in bulk delete in Firestore", error);
+            throw error;
+        }
+    }, []);
 
     return { feedbackList, isLoading, addFeedback, updateFeedbackReview, deleteFeedback, bulkUpdateFeedbackStatus, bulkDeleteFeedback };
 };

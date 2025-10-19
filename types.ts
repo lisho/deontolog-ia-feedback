@@ -27,7 +27,7 @@ export interface FeedbackData {
   corpus_comentarios?: string;
   corpus_propuestas?: string;
 
-  timestamp?: Date;
+  timestamp?: string;
   review_status: ReviewStatus;
   review_result: string;
 }

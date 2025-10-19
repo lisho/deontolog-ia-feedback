@@ -116,7 +116,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 clarity: Object.entries(clarityData).map(([label, value]: [string, number]) => ({ label, value })),
                 utility: Object.entries(utilityData).map(([label, value]: [string, number]) => ({ label, value })),
                 deontologicalRatingDist: getRatingDistribution('valoracion_deontologica'),
-                // FIX: The argument was incorrect and did not match the 'RatingKeys' type.
                 pertinenceRatingDist: getRatingDistribution('valoracion_pertinencia'),
                 interactionQualityRatingDist: getRatingDistribution('valoracion_calidad_interaccion'),
             },
