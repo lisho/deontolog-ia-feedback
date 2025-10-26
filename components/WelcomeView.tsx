@@ -16,9 +16,9 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onNavigate, onOpenLogi
                 <button
                     onClick={() => onNavigate('iteration')}
                     className="p-6 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg text-left transition-all duration-300 transform hover:scale-105"
-                    aria-label="Proporcionar feedback sobre una interacción concreta"
+                    aria-label="Proporcionar feedback sobre una incidencia"
                 >
-                    <h2 className="text-xl font-bold text-blue-800">Feedback de Iteración Concreta</h2>
+                    <h2 className="text-xl font-bold text-blue-800">Feedback de Incidencias</h2>
                     <p className="mt-2 text-gray-700">Reporte un error, sugiera una mejora o valore un aspecto específico de una respuesta del chatbot.</p>
                 </button>
                 <button

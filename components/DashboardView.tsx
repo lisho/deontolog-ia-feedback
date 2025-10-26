@@ -182,17 +182,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
         let promptContext = "un resumen general del feedback activo (excluyendo los cerrados)";
         let statsContext = `
             - Total de Feedbacks Activos: ${activeFeedbackList.length}
-            - Feedbacks de Iteración: ${iterationFeedbacks.length}
+            - Feedbacks de Incidencias: ${iterationFeedbacks.length}
             - Feedbacks de Conversación: ${conversationFeedbacks.length}
             - Feedbacks de Validación de Corpus: ${corpusFeedbacks.length}
         `;
 
         switch(activeTab) {
             case 'iteration':
-                if (iterationFeedbacks.length === 0) return "No hay datos de iteración para analizar.";
+                if (iterationFeedbacks.length === 0) return "No hay datos de incidencias para analizar.";
                 dataForSummary = iterationFeedbacks;
-                promptContext = "un análisis del feedback sobre iteraciones concretas (errores, sugerencias, etc.)";
-                statsContext = `- Total de Feedbacks de Iteración: ${iterationFeedbacks.length}`;
+                promptContext = "un análisis del feedback sobre incidencias (errores, sugerencias, etc.)";
+                statsContext = `- Total de Feedbacks de Incidencias: ${iterationFeedbacks.length}`;
                 break;
             case 'conversation':
                  if (conversationFeedbacks.length === 0) return "No hay datos de conversación para analizar.";
@@ -264,7 +264,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                 headers = ['Fecha', 'Tipo', 'Escenario', 'Valoración', 'Estado'];
                 const kpis = [
                     { title: 'Total Activos', value: activeFeedbackList.length },
-                    { title: 'Iteraciones', value: iterationFeedbacks.length },
+                    { title: 'Incidencias', value: iterationFeedbacks.length },
                     { title: 'Conversaciones', value: conversationFeedbacks.length },
                     { title: 'Valid. Corpus', value: corpusFeedbacks.length },
                 ];
@@ -286,12 +286,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.tipo_feedback}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.valoracion_deontologica || 'N/A'}</td><td>${f.review_status}</td></tr>`).join('')}</tbody>`;
                 break;
             case 'iteration':
-                title = "Informe de Análisis de Iteraciones";
+                title = "Informe de Análisis de Incidencias";
                 data = iterationFeedbacks;
                 headers = ['Fecha', 'Tipo', 'Escenario', 'Descripción'];
                 const iterationCounts = data.reduce((acc, f) => { acc[f.tipo_feedback] = (acc[f.tipo_feedback] || 0) + 1; return acc; }, {} as Record<string, number>);
                 const iterationChartData = Object.entries(iterationCounts).map(([label, value]) => ({label, value: Number(value)}));
-                infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Desglose por Tipo de Iteración", iterationChartData, '#3B82F6')}</div>`;
+                infographicHtml = `<div class="card">${generateHorizontalBarChartHtml("Desglose por Tipo de Incidencia", iterationChartData, '#3B82F6')}</div>`;
                 tableHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
                          <tbody>${data.map(f => `<tr><td>${new Date(f.timestamp || 0).toLocaleDateString('es-ES')}</td><td>${f.tipo_feedback}</td><td>${f.escenario_keywords || 'N/A'}</td><td>${f.descripcion || 'N/A'}</td></tr>`).join('')}</tbody>`;
                 break;
@@ -413,7 +413,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
                  <ActionsBar />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <KpiCard title="Total de Feedbacks (Activos)" value={activeFeedbackList.length} description="Registros que coinciden con los filtros (excl. cerrados)" />
-                    <KpiCard title="Total Iteraciones" value={iterationFeedbacks.length} description="Errores, sugerencias, etc." />
+                    <KpiCard title="Total Incidencias" value={iterationFeedbacks.length} description="Errores, sugerencias, etc." />
                     <KpiCard title="Total Conversaciones" value={conversationFeedbacks.length} description="Evaluaciones completas" />
                     <KpiCard title="Total Valid. Corpus" value={corpusFeedbacks.length} description="Cuestionarios de expertos" />
                 </div>
@@ -435,13 +435,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
         return (
             <div>
                 <ActionsBar />
-                {iterationFeedbacks.length === 0 ? <div className="text-center text-gray-500 p-4">No hay datos de feedback de iteración.</div> :
+                {iterationFeedbacks.length === 0 ? <div className="text-center text-gray-500 p-4">No hay datos de feedback de incidencias.</div> :
                 (<>
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <KpiCard title="Total Feedbacks de Iteración" value={iterationFeedbacks.length} description="Análisis de respuestas específicas" />
+                        <KpiCard title="Total Feedbacks de Incidencias" value={iterationFeedbacks.length} description="Análisis de respuestas específicas" />
                      </div>
                      <div className="grid grid-cols-1 gap-6 mt-6">
-                         <FeedbackByTypeChart data={stats.typeChartData} title="Desglose por Tipo de Iteración"/>
+                         <FeedbackByTypeChart data={stats.typeChartData} title="Desglose por Tipo de Incidencia"/>
                      </div>
                 </>)}
             </div>
@@ -565,7 +565,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
             {summary && (
                 <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                     <h4 className="text-lg font-semibold text-gray-800 mb-2">Resumen Ejecutivo (IA) - {
-                        { 'general': 'Visión General', 'iteration': 'Análisis de Iteraciones', 'conversation': 'Análisis de Conversación', 'corpus': 'Validación de Corpus' }[activeTab]
+                        { 'general': 'Visión General', 'iteration': 'Análisis de Incidencias', 'conversation': 'Análisis de Conversación', 'corpus': 'Validación de Corpus' }[activeTab]
                     }</h4>
                     <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: summary }}></div>
                 </div>
@@ -574,7 +574,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ feedbackList, apiK
             <div className="border-b border-gray-200 mb-2">
                 <nav className="-mb-px flex space-x-4" aria-label="Tabs">
                     <TabButton tabName="general" label="Visión General" />
-                    <TabButton tabName="iteration" label="Análisis de Iteraciones" />
+                    <TabButton tabName="iteration" label="Análisis de Incidencias" />
                     <TabButton tabName="conversation" label="Análisis de Conversación" />
                     <TabButton tabName="corpus" label="Validación de Corpus" />
                 </nav>

@@ -59,7 +59,7 @@ const createReportHtml = (report: ReportData): string => {
 
 const TAB_LABELS: Record<ReportData['tab'], string> = {
     general: 'Visión General',
-    iteration: 'Iteraciones',
+    iteration: 'Incidencias',
     conversation: 'Conversación',
     corpus: 'Validación Corpus',
 };

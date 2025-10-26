@@ -268,7 +268,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                  <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-xl font-bold text-gray-800">
-                            {isConversationValuation ? 'Feedback de Conversación Completa' : 'Feedback de Iteración Concreta'}
+                            {isConversationValuation ? 'Feedback de Conversación Completa' : 'Feedback de Incidencias'}
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
                             {isConversationValuation
@@ -324,7 +324,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                     </div>
                     {errors.dispositivo && <p className="text-red-500 text-xs mt-1">{errors.dispositivo}</p>}
 
-                    <label htmlFor="escenario_keywords" className="block text-sm font-medium text-black mt-4">Escenario/Dilema planteado (Palabras clave):</label>
+                    <label htmlFor="escenario_keywords" className="block text-sm font-medium text-black mt-4">Escenario/Dilema planteado /Tarea propuesta:</label>
                     <div className="relative">
                         <input type="text" id="escenario_keywords" name="escenario_keywords" value={formData.escenario_keywords} onChange={handleChange} onBlur={handleBlur} placeholder="Ej: Confidencialidad en menores" className={`mt-1 block w-full rounded-md shadow-sm p-2 pr-10 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400 text-black ${errors.escenario_keywords ? 'border-red-500' : 'border-gray-300'}`} required/>
                          {validFields.escenario_keywords && (
@@ -418,7 +418,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSubmit, formType, 
                 
                 {isConversationValuation && (
                     <fieldset className="p-4 border border-indigo-200 rounded-lg bg-indigo-50 transition-all duration-300">
-                        <legend className="text-lg font-semibold text-indigo-700 px-2">C. Evaluación Experta (Opcional)</legend>
+                        <legend className="text-lg font-semibold text-indigo-700 px-2">C. Evaluación Experta </legend>
                         <p className="text-sm text-gray-600 mt-2 px-2 mb-3">Sección orientada a profesionales para valorar la aplicabilidad práctica de la IA.</p>
                          <div className="mt-2 space-y-4">
                             <div>

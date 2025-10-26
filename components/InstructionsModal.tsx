@@ -10,7 +10,7 @@ interface InstructionsModalProps {
 
 const IterationInstructions = () => (
     <div>
-        <h3 className="font-bold text-blue-700">Feedback de Iteración Concreta</h3>
+        <h3 className="font-bold text-blue-700">Feedback de Incidencias</h3>
         <p>
             Utilice esta opción cuando quiera informar sobre un aspecto específico de una única respuesta del chatbot. Es ideal para:
         </p>
@@ -60,7 +60,7 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
     if (!isOpen) return null;
 
     const titleMap: Record<string, string> = {
-        iteration: 'Feedback de Iteración Concreta',
+        iteration: 'Feedback de Incidencias',
         conversation: 'Feedback de Conversación Completa',
         corpus_validation: 'Validación del Corpus Ético',
         all: 'Instrucciones para el Feedback'
